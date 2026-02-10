@@ -1,0 +1,242 @@
+{
+  "dashboardStats": {
+    "stats": [
+      {
+        "id": 1,
+        "label": "Total Farmers",
+        "value": "2,847",
+        "icon": "Sprout",
+        "color": "bg-green-500",
+        "change": "+12%"
+      },
+      {
+        "id": 2,
+        "label": "Total Sellers",
+        "value": "123",
+        "icon": "Store",
+        "color": "bg-blue-500",
+        "change": "+8%"
+      },
+      {
+        "id": 3,
+        "label": "Total Buyers",
+        "value": "5,621",
+        "icon": "ShoppingCart",
+        "color": "bg-purple-500",
+        "change": "+15%"
+      },
+      {
+        "id": 4,
+        "label": "Total Products",
+        "value": "8,932",
+        "icon": "Package",
+        "color": "bg-orange-500",
+        "change": "+23%"
+      },
+      {
+        "id": 5,
+        "label": "Active Orders",
+        "value": "342",
+        "icon": "Clock",
+        "color": "bg-yellow-500",
+        "change": "+5%"
+      },
+      {
+        "id": 6,
+        "label": "Completed Orders",
+        "value": "12483",
+        "icon": "CheckCircle",
+        "color": "bg-emerald-500",
+        "change": "+18%"
+      },
+      {
+        "id": 7,
+        "label": "Total Revenue",
+        "value": "$487,234",
+        "icon": "DollarSign",
+        "color": "bg-indigo-500",
+        "change": "+2%"
+      },
+      {
+        "id": 8,
+        "label": "Pending Approvals",
+        "value": "28",
+        "icon": "Clock",
+        "color": "bg-red-500",
+        "change": "-3%"
+      }
+    ],
+    "registrations": [
+      { "name": "Mon", "farmers": 45, "sellers": 12, "buyers": 89 },
+      { "name": "Tue", "farmers": 52, "sellers": 18, "buyers": 102 },
+      { "name": "Wed", "farmers": 48, "sellers": 15, "buyers": 95 },
+      { "name": "Thu", "farmers": 61, "sellers": 22, "buyers": 118 },
+      { "name": "Fri", "farmers": 55, "sellers": 19, "buyers": 108 },
+      { "name": "Sat", "farmers": 38, "sellers": 10, "buyers": 76 },
+      { "name": "Sun", "farmers": 42, "sellers": 14, "buyers": 85 }
+    ],
+    "orders": [
+      { "name": "Jan", "orders": 150 },
+      { "name": "Feb", "orders": 312 },
+      { "name": "Mar", "orders": 289 },
+      { "name": "Apr", "orders": 367 },
+      { "name": "May", "orders": 423 },
+      { "name": "Jun", "orders": 398 }
+    ],
+    "productSales": {
+      "year": [
+        { "name": "Jan", "productA": 4200, "productB": 3800, "total": 8000 },
+        { "name": "Feb", "productA": 1800, "productB": 2900, "total": 4700 },
+        { "name": "Mar", "productA": 2400, "productB": 2600, "total": 5000 },
+        { "name": "Apr", "productA": 4800, "productB": 2000, "total": 6800 },
+        { "name": "May", "productA": 2800, "productB": 3500, "total": 6300 },
+        { "name": "Jun", "productA": 3200, "productB": 3100, "total": 6300 },
+        { "name": "Jul", "productA": 3500, "productB": 3300, "total": 6800 },
+        { "name": "Aug", "productA": 2100, "productB": 2000, "total": 4100 },
+        { "name": "Sep", "productA": 2900, "productB": 2700, "total": 5600 },
+        { "name": "Oct", "productA": 800, "productB": 1400, "total": 2200 },
+        { "name": "Nov", "productA": 2100, "productB": 2600, "total": 4700 },
+        { "name": "Dec", "productA": 3200, "productB": 3100, "total": 6300 }
+      ],
+      "month": [
+        { "name": "Week 1", "total": 4200 },
+        { "name": "Week 2", "total": 3800 },
+        { "name": "Week 3", "total": 4500 },
+        { "name": "Week 4", "total": 4000 }
+      ],
+      "week": [
+        { "name": "Mon", "total": 1200 },
+        { "name": "Tue", "total": 1500 },
+        { "name": "Wed", "total": 1300 },
+        { "name": "Thu", "total": 1700 },
+        { "name": "Fri", "total": 1600 },
+        { "name": "Sat", "total": 1400 },
+        { "name": "Sun", "total": 1800 }
+      ]
+    }
+  },
+  "sellers": [
+    {
+      "id": 1,
+      "name": "The Home Depot",
+      "address": "Opposite Furniture City, 77 Spintex Rd, Accra, Ghana",
+      "color": "bg-orange-500",
+      "createdAt": "2024-01-10T08:30:00Z"
+    },
+    {
+      "id": 2,
+      "name": "BraveWe Collection",
+      "address": "2 Adoley Abla Street, Accra, Ghana",
+      "color": "bg-green-500",
+      "createdAt": "2024-01-09T14:20:00Z"
+    },
+    {
+      "id": 3,
+      "name": "STYLY Fashion",
+      "address": "202 Dean Plaza, Accra - Kumasi Rd, Accra, Ghana",
+      "color": "bg-gray-700",
+      "createdAt": "2024-01-08T10:15:00Z"
+    },
+    {
+      "id": 4,
+      "name": "Refco Bag Ltd",
+      "address": "Airport Bypass Rd, Accra, Ghana",
+      "color": "bg-purple-500",
+      "createdAt": "2024-01-07T16:45:00Z"
+    },
+    {
+      "id": 5,
+      "name": "Jeamy Deal",
+      "address": "301, Itrade Commercial, Adjiringano Rd, Accra, Ghana",
+      "color": "bg-pink-500",
+      "createdAt": "2024-01-06T11:30:00Z"
+    }
+  ],
+  "customers": [
+    {
+      "id": 1,
+      "name": "Kigen pieterson",
+      "email": "kegenpet980@gmail.com",
+      "avatar": "https://i.pravatar.cc/150?img=5",
+      "createdAt": "2024-01-10T09:00:00Z"
+    },
+    {
+      "id": 2,
+      "name": "Brandon Walsh",
+      "email": "iambrandon90@hotmail.com",
+      "avatar": "https://i.pravatar.cc/150?img=6",
+      "createdAt": "2024-01-09T15:30:00Z"
+    },
+    {
+      "id": 3,
+      "name": "Sam Wilson",
+      "email": "samwilson@reppeducation.com",
+      "avatar": "https://i.pravatar.cc/150?img=7",
+      "createdAt": "2024-01-08T11:20:00Z"
+    },
+    {
+      "id": 4,
+      "name": "Dean Mayer",
+      "email": "dmayer1987@gmail.com",
+      "avatar": "https://i.pravatar.cc/150?img=8",
+      "createdAt": "2024-01-07T14:10:00Z"
+    },
+    {
+      "id": 5,
+      "name": "Kagiso",
+      "email": "kgmorrison@hotmail.com",
+      "avatar": "https://i.pravatar.cc/150?img=9",
+      "createdAt": "2024-01-06T10:45:00Z"
+    }
+  ],
+  "popularProducts": [
+    {
+      "id": 1,
+      "name": "Organic Fresh Vegetables",
+      "price": 70,
+      "originalPrice": null,
+      "seller": "Refco Bags Ltd",
+      "category": "Vegetables",
+      "image": "https://th.bing.com/th/id/OIP.RPJw-1gIkSfV3aOCPp3I1wHaE7?w=278&h=185&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3",
+      "inStock": true,
+      "rating": 4.5,
+      "reviews": 124
+    },
+    {
+      "id": 2,
+      "name": "Organic Fresh Seafood",
+      "price": 30,
+      "originalPrice": 120,
+      "seller": "Silverstart Mobile",
+      "category": "Seafood",
+      "image": "https://th.bing.com/th/id/OIP.KiUo3wuffRE19HPCb2EVPQHaE8?w=253&h=180&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3",
+      "inStock": true,
+      "rating": 4.8,
+      "reviews": 89
+    },
+    {
+      "id": 3,
+      "name": "Organic Fresh Dairy Products",
+      "price": 60,
+      "originalPrice": null,
+      "seller": "Kitty Shop",
+      "category": "Dairy",
+      "image": "https://th.bing.com/th/id/OIP.OJBTHZ_Z1d1eFQiE8LoZgQHaEz?w=322&h=180&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3",
+      "inStock": true,
+      "rating": 4.6,
+      "reviews": 156
+    },
+    {
+      "id": 4,
+      "name": "Organic Fresh Meat",
+      "price": 120,
+      "originalPrice": null,
+      "seller": "Brand Factory",
+      "category": "Meat",
+      "image": "https://th.bing.com/th/id/OIP.QV9nLsosd2GuFfqmwBD7NAHaF0?w=206&h=180&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3",
+      "inStock": true,
+      "rating": 4.7,
+      "reviews": 203
+    }
+  ]
+}
