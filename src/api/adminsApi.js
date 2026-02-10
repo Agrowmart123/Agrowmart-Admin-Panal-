@@ -7,12 +7,20 @@ export const getTeamMembers = () => {
 
 // ADD – new team member
 export const addTeamMember = (formData) => {
-  return api.post("/v1/super/team/add", formData); 
+  return api.post("/v1/super/team/add", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
 };
 
 // UPDATE – team member
 export const updateTeamMember = (id, formData) => {
-  return api.put(`/v1/super/team/${id}`, formData); 
+  return api.put(`/v1/super/team/${id}`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
 };
 
 // DELETE – team member

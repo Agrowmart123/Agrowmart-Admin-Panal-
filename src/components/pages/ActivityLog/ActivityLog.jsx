@@ -17,7 +17,6 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 
-
 const generateMockActivityLogs = () => {
   const entries = [
     {
@@ -32,7 +31,7 @@ const generateMockActivityLogs = () => {
     {
       timestamp: new Date("2026-02-09T23:33:07"),
       user: "David Kim",
-      role: "Admin",
+      role: "Super Admin",
       action: "Login",
       description: "Logged in from mobile device",
       ip: "172.31.0.25",
@@ -91,6 +90,13 @@ const getStatusStyle = (status) =>
     ? "bg-green-100 text-green-800 border-green-200"
     : "bg-red-100 text-red-800 border-red-200";
 
+const Detail = ({ label, value }) => (
+  <div className="flex justify-between gap-4">
+    <span className="text-gray-500">{label}</span>
+    <span className="font-medium text-gray-800 text-right">{value}</span>
+  </div>
+);
+
 export default function ActivityLog() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -102,7 +108,32 @@ export default function ActivityLog() {
   const [actionFilter, setActionFilter] = useState("All");
   const [timeFilter, setTimeFilter] = useState("All");
 
+  const [roleOpen, setRoleOpen] = useState(false);
+  const [actionOpen, setActionOpen] = useState(false);
+  const [timeOpen, setTimeOpen] = useState(false);
+
+  const [viewLog, setViewLog] = useState(null);
+
   const pageSize = 10;
+
+  const copyFullLog = (log) => {
+    const text = `
+Activity Log Details
+--------------------
+User       : ${log.user}
+Role       : ${log.role}
+Action     : ${log.action}
+Status     : ${log.status}
+IP Address : ${log.ip}
+Timestamp  : ${format(log.timestamp, "MMM dd, yyyy HH:mm:ss")}
+
+Description:
+${log.description}
+  `.trim();
+
+    navigator.clipboard.writeText(text);
+    toast.success("Full activity log copied");
+  };
 
   useEffect(() => {
     setTimeout(() => {
@@ -247,7 +278,7 @@ export default function ActivityLog() {
                 size={18}
               />
               <input
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
                 placeholder="Search by user, action, or IP address..."
                 value={search}
                 onChange={(e) => {
@@ -316,52 +347,85 @@ export default function ActivityLog() {
           {/* Filter dropdowns */}
           <div className="flex flex-wrap gap-3 text-sm">
             {/* Role Filter */}
-            <select
-              value={roleFilter}
-              onChange={(e) => {
-                setRoleFilter(e.target.value);
-                setPage(1);
-              }}
-              className="px-3.5 py-2 border border-gray-300 rounded-md bg-white text-gray-700"
-            >
-              <option value="All">All Roles</option>
-              <option value="Super Admin">Super Admin</option>
-              <option value="Admin">Admin</option>
-              <option value="Sub Admin">Sub Admin</option>
-            </select>
+            <div className="relative">
+              <select
+                value={roleFilter}
+                onChange={(e) => {
+                  setRoleFilter(e.target.value);
+                  setPage(1);
+                }}
+                onFocus={() => setRoleOpen(true)}
+                onBlur={() => setRoleOpen(false)}
+                className="appearance-none pr-9 px-3.5 py-2 border border-gray-300 rounded-md bg-white text-gray-700 w-full"
+              >
+                <option value="All">All Roles</option>
+                <option value="Super Admin">Super Admin</option>
+                <option value="Admin">Admin</option>
+                <option value="Sub Admin">Sub Admin</option>
+              </select>
+
+              <ChevronDown
+                size={16}
+                className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 transition-transform ${
+                  roleOpen ? "rotate-180" : ""
+                }`}
+              />
+            </div>
 
             {/* Action Filter */}
-            <select
-              value={actionFilter}
-              onChange={(e) => {
-                setActionFilter(e.target.value);
-                setPage(1);
-              }}
-              className="px-3.5 py-2 border border-gray-300 rounded-md bg-white text-gray-700"
-            >
-              <option value="All">All Actions</option>
-              <option value="Create">Create</option>
-              <option value="Update">Update</option>
-              <option value="Delete">Delete</option>
-              <option value="Login">Login</option>
-              <option value="Logout">Logout</option>
-              <option value="View">View</option>
-              <option value="Export">Export</option>
-            </select>
+            <div className="relative">
+              <select
+                value={actionFilter}
+                onChange={(e) => {
+                  setActionFilter(e.target.value);
+                  setPage(1);
+                }}
+                onFocus={() => setActionOpen(true)}
+                onBlur={() => setActionOpen(false)}
+                className="appearance-none pr-9 px-3.5 py-2 border border-gray-300 rounded-md bg-white text-gray-700 w-full"
+              >
+                <option value="All">All Actions</option>
+                <option value="Create">Create</option>
+                <option value="Update">Update</option>
+                <option value="Delete">Delete</option>
+                <option value="Login">Login</option>
+                <option value="Logout">Logout</option>
+                <option value="View">View</option>
+                <option value="Export">Export</option>
+              </select>
+
+              <ChevronDown
+                size={16}
+                className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 transition-transform ${
+                  actionOpen ? "rotate-180" : ""
+                }`}
+              />
+            </div>
 
             {/* Time Filter */}
-            <select
-              value={timeFilter}
-              onChange={(e) => {
-                setTimeFilter(e.target.value);
-                setPage(1);
-              }}
-              className="px-3.5 py-2 border border-gray-300 rounded-md bg-white text-gray-700"
-            >
-              <option value="All">All Time</option>
-              <option value="Today">Today</option>
-              <option value="Last7">Last 7 Days</option>
-            </select>
+            <div className="relative">
+              <select
+                value={timeFilter}
+                onChange={(e) => {
+                  setTimeFilter(e.target.value);
+                  setPage(1);
+                }}
+                onFocus={() => setTimeOpen(true)}
+                onBlur={() => setTimeOpen(false)}
+                className="appearance-none pr-9 px-3.5 py-2 border border-gray-300 rounded-md bg-white text-gray-700 w-full"
+              >
+                <option value="All">All Time</option>
+                <option value="Today">Today</option>
+                <option value="Last7">Last 7 Days</option>
+              </select>
+
+              <ChevronDown
+                size={16}
+                className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 transition-transform ${
+                  timeOpen ? "rotate-180" : ""
+                }`}
+              />
+            </div>
           </div>
 
           {/* Table */}
@@ -426,7 +490,7 @@ export default function ActivityLog() {
                           {log.user}
                         </td>
                         <td className="px-5 py-4">
-                          <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium border bg-gray-100 text-gray-800">
+                          <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium border border-gray-400 bg-gray-100 text-gray-800">
                             {log.role}
                           </span>
                         </td>
@@ -457,14 +521,15 @@ export default function ActivityLog() {
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3 text-gray-500">
-                            <button className="hover:text-blue-600 transition-colors">
+                            <button
+                              onClick={() => setViewLog(log)}
+                              className="hover:text-green-600 transition-colors"
+                            >
                               <Eye size={16} />
                             </button>
+
                             <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(log.description);
-                                toast.success("Description copied");
-                              }}
+                              onClick={() => copyFullLog(log)}
                               className="hover:text-green-600 transition-colors"
                             >
                               <Copy size={16} />
@@ -517,7 +582,7 @@ export default function ActivityLog() {
 
                   {/* Role + Action */}
                   <div className="flex gap-2 flex-wrap">
-                    <span className="px-2.5 py-0.5 rounded-full text-xs border bg-gray-100 text-gray-800">
+                    <span className="px-2.5 py-0.5 rounded-full text-xs border border-gray-400 bg-gray-100 text-gray-800">
                       {log.role}
                     </span>
 
@@ -538,14 +603,15 @@ export default function ActivityLog() {
                     <span className="font-mono">{log.ip}</span>
 
                     <div className="flex items-center gap-3">
-                      <button className="hover:text-blue-600">
+                      <button
+                        onClick={() => setViewLog(log)}
+                        className="hover:text-green-600"
+                      >
                         <Eye size={16} />
                       </button>
+
                       <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(log.description);
-                          toast.success("Description copied");
-                        }}
+                        onClick={() => copyFullLog(log)}
                         className="hover:text-green-600"
                       >
                         <Copy size={16} />
@@ -557,32 +623,111 @@ export default function ActivityLog() {
             )}
           </div>
 
-          {/* Pagination + Info */}
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-600">
-            <div>
-              Showing {(page - 1) * pageSize + 1} to{" "}
-              {Math.min(page * pageSize, filteredLogs.length)} of{" "}
-              {filteredLogs.length} entries
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                disabled={page === 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="p-2 border border-gray-300 rounded-md disabled:opacity-40 hover:bg-gray-50"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <button
-                disabled={page === totalPages || totalPages === 0}
-                onClick={() => setPage((p) => p + 1)}
-                className="p-2 border border-gray-300 rounded-md disabled:opacity-40 hover:bg-gray-50"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
+          {/* ================= PAGINATION ================= */}
+          <div className="flex justify-center items-center mt-6 gap-2 text-sm select-none">
+            {/* PREV */}
+            <button
+              onClick={() => page > 1 && setPage(page - 1)}
+              disabled={page === 1}
+              className={`px-3 py-1 rounded ${
+                page === 1
+                  ? "text-gray-300 cursor-not-allowed"
+                  : "text-gray-700 hover:text-green-600"
+              }`}
+            >
+              PREV
+            </button>
+
+            {/* PAGE NUMBERS */}
+            {(() => {
+              const pages = [];
+              const maxShown = 5;
+
+              let start = Math.max(1, page - Math.floor(maxShown / 2));
+              let end = start + maxShown - 1;
+
+              if (end > totalPages) {
+                end = totalPages;
+                start = Math.max(1, end - maxShown + 1);
+              }
+
+              for (let i = start; i <= end; i++) {
+                pages.push(i);
+              }
+
+              return pages.map((num) => (
+                <button
+                  key={num}
+                  onClick={() => setPage(num)}
+                  className={`px-2.5 py-1 rounded border text-sm ${
+                    page === num
+                      ? "bg-green-600 text-white border-green-600"
+                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  {num}
+                </button>
+              ));
+            })()}
+
+            {/* NEXT */}
+            <button
+              onClick={() => page < totalPages && setPage(page + 1)}
+              disabled={page === totalPages}
+              className={`px-3 py-1 rounded ${
+                page === totalPages
+                  ? "text-gray-300 cursor-not-allowed"
+                  : "text-gray-700 hover:text-green-600"
+              }`}
+            >
+              NEXT
+            </button>
           </div>
         </main>
       </div>
+
+      {viewLog && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4">
+          <div className="bg-white w-full max-w-lg rounded-xl shadow-lg p-6 space-y-5 relative">
+            {/* Header */}
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-gray-800">
+                Activity Details
+              </h2>
+              <button
+                onClick={() => setViewLog(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Details */}
+            <div className="space-y-3 text-sm">
+              <Detail label="User" value={viewLog.user} />
+              <Detail label="Role" value={viewLog.role} />
+              <Detail label="Action" value={viewLog.action} />
+              <Detail
+                label="Timestamp"
+                value={format(viewLog.timestamp, "MMM dd, yyyy • HH:mm:ss")}
+              />
+              <Detail label="IP Address" value={viewLog.ip} />
+              <Detail label="Status" value={viewLog.status} />
+              <Detail label="Description" value={viewLog.description} />
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-3 pt-4">
+              <button
+                onClick={() => setViewLog(null)}
+                className="px-4 py-2 border rounded-md text-sm hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
