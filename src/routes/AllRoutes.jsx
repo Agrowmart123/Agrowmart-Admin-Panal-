@@ -129,7 +129,7 @@ const AllRoutes = () => {
           <Route path="/activity-log" element={<ActivityLog />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/notifications" element={<Notifications />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile" element={<Profile/>} />
         </Route>
       </Routes>
     </BrowserRouter>
