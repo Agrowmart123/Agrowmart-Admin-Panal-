@@ -15,7 +15,7 @@
 //           onChange={onChange}
 //           readOnly={readOnly}
 //           className={`
-//             w-full p-3 border rounded-lg focus:outline-none 
+//             w-full p-3 border rounded-lg focus:outline-none
 //             ${
 //               readOnly
 //                 ? "bg-gray-100 cursor-not-allowed text-gray-500 border-gray-300"
@@ -260,12 +260,10 @@
 
 // export default AdminProfile;
 
-
 // ***********Axios Added****************************
 
 import React, { useState, useEffect } from "react";
 import { getMyProfile, updateMyProfile } from "../../../api/profileApi";
-
 
 const ProfileInputField = React.memo(
   ({ label, name, value, onChange, readOnly = false }) => {
@@ -292,43 +290,37 @@ const ProfileInputField = React.memo(
         />
       </div>
     );
-  }
+  },
 );
-
 
 const AdminProfile = () => {
   const [profile, setProfile] = useState(null);
-const [isEditing, setIsEditing] = useState(false);
-const [photoFile, setPhotoFile] = useState(null);
-const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [photoFile, setPhotoFile] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-useEffect(() => {
-  const loadProfile = async () => {
-    try {
-      const res = await getMyProfile();
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const res = await getMyProfile();
 
-      setProfile({
-        fullName: res.data.fullName,
-        email: res.data.email,
-        phone: res.data.phone,
-        role: res.data.role,
-        profilePhotoUrl: res.data.photoUrl,
-      });
-    } catch (err) {
-      console.error("Failed to load profile", err);
-      alert("Failed to load profile");
-    } finally {
-      setLoading(false);
-    }
-  };
+        setProfile({
+          fullName: res.data.fullName,
+          email: res.data.email,
+          phone: res.data.phone,
+          role: res.data.role,
+          profilePhotoUrl: res.data.photoUrl,
+        });
+      } catch (err) {
+        console.error("Failed to load profile", err);
+        alert("Failed to load profile");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  loadProfile();
-}, []);
-
-if (loading) {
-  return <div className="p-10 text-center">Loading profile...</div>;
-}
-
+    loadProfile();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -365,7 +357,7 @@ if (loading) {
   };
 
   // Function to handle form submission (Save Changes)
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!profile.fullName.trim()) {
@@ -373,16 +365,29 @@ if (loading) {
       return;
     }
 
-    // Validate phone: must start with +91, optional space, then exactly 10 digits
-    const phonePattern = /^\+91\s?\d{10}$/;
-    if (!phonePattern.test(profile.phone)) {
-      alert("Invalid phone number.");
-      return;
-    }
+    try {
+      const formData = new FormData();
+      formData.append("fullName", profile.fullName);
 
-    console.log("Profile Saved:", profile);
-    alert("Profile updated successfully");
-    setIsEditing(false);
+      if (photoFile) {
+        formData.append("photo", photoFile);
+      }
+
+      const res = await updateMyProfile(formData);
+
+      alert(res.data.message || "Profile updated");
+
+      setProfile((prev) => ({
+        ...prev,
+        profilePhotoUrl: res.data.photoUrl,
+      }));
+
+      setPhotoFile(null);
+      setIsEditing(false);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Update failed");
+    }
   };
 
   const handlePhotoChange = (e) => {
@@ -390,20 +395,17 @@ if (loading) {
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      alert("Image size should be less than 2MB");
+      alert("Image must be under 2MB");
       return;
     }
 
-    if (!["image/jpeg", "image/png", "image/gif"].includes(file.type)) {
-      alert("Only JPG, PNG or GIF allowed");
-      return;
-    }
+    setPhotoFile(file);
 
-    const photoURL = URL.createObjectURL(file);
     setProfile((prev) => ({
       ...prev,
-      profilePhotoUrl: photoURL,
+      profilePhotoUrl: URL.createObjectURL(file),
     }));
+
     setIsEditing(true);
   };
 
@@ -418,6 +420,12 @@ if (loading) {
     window.addEventListener("beforeunload", warnUser);
     return () => window.removeEventListener("beforeunload", warnUser);
   }, [isEditing]);
+
+  
+  if (loading) {
+    return <div className="p-10 text-center">Loading profile...</div>;
+  }
+
 
   // The main component render
   return (
@@ -516,10 +524,7 @@ if (loading) {
           <div className="flex gap-4 mt-8">
             <button
               type="button"
-              onClick={() => {
-                setProfile(initialProfileData);
-                setIsEditing(false);
-              }}
+              onClick={() => window.location.reload()}
               className="px-6 py-3 rounded-lg border border-gray-300"
             >
               Cancel
@@ -547,4 +552,3 @@ if (loading) {
 };
 
 export default AdminProfile;
-
