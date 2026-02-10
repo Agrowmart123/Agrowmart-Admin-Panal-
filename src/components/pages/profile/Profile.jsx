@@ -264,7 +264,7 @@
 // ***********Axios Added****************************
 
 import React, { useState, useEffect } from "react";
-import { getMyProfile, updateMyProfile } from "../../services/profileApi";
+import { getMyProfile, updateMyProfile } from "../../../api/profileApi";
 
 
 const ProfileInputField = React.memo(
