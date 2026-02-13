@@ -809,19 +809,18 @@ export default function AgriProductDetail() {
       reasons.push(customReason.trim());
     }
 
-     const finalReason = reasons.join(", ");
+    const finalReason = reasons.join(", ");
 
     try {
       await rejectAgriProduct(product.id, finalReason);
-        setProduct((prev) => ({
-      ...prev,
-      rejectionReason: finalReason,
-    }));
+      setProduct((prev) => ({
+        ...prev,
+        rejectionReason: finalReason,
+      }));
 
-     
       setStatus("REJECTED");
       setShowRejectModal(false);
-       toast.error("Product rejected");
+      toast.error("Product rejected");
     } catch {
       toast.error("Reject failed");
     }
@@ -1015,23 +1014,6 @@ export default function AgriProductDetail() {
                     <dt className="text-sm font-bold text-black">Stock</dt>
                     <dd className="text-md font-semibold text-black mt-1">
                       {product.Agriquantity || 0} units
-                    </dd>
-                  </div>
-
-                  <div className="bg-gray-300/60 p-4 rounded-lg border border-gray-300">
-                    <dt className="text-sm font-bold text-black">
-                      Visible to customers
-                    </dt>
-                    <dd className="mt-1">
-                      {product.visibleToCustomers ? (
-                        <span className="inline-flex px-3 py-1 text-xs rounded-full border border-green-600 text-green-600">
-                          Yes
-                        </span>
-                      ) : (
-                        <span className="inline-flex px-3 py-1 text-xs rounded-full border border-red-600 text-red-600">
-                          No
-                        </span>
-                      )}
                     </dd>
                   </div>
 

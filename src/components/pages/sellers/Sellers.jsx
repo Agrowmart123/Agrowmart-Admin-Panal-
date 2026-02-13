@@ -367,8 +367,22 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Filter, Trash2, Loader2 } from "lucide-react";
+import {
+  Search,
+  Filter,
+  Trash2,
+  Loader2,
+  FileText,
+  Download,
+  Printer,
+} from "lucide-react";
 import { getSellers } from "../../../api/sellerApi";
+import toast from "react-hot-toast";
+
+// Export Libraries
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -381,7 +395,7 @@ const Sellers = () => {
   const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // ✅ डेटा फेच करण्याचे फंक्शन
+  // ✅ Fetch Data Logic
   const fetchMerchants = async () => {
     setLoading(true);
     try {
@@ -399,10 +413,7 @@ const Sellers = () => {
         statusParam,
       );
 
-      console.log("API Response on Sellers Page:", response);
-
       if (response.success) {
-        // ApiResponseDTO प्रमाणे data.data मधून अचूक डेटा मॅप करणे
         const rawData = response.data?.data || response.data || [];
         setMerchantsData(rawData);
         setTotalElements(
@@ -411,15 +422,68 @@ const Sellers = () => {
       }
     } catch (err) {
       console.error("Fetch error:", err);
+      toast.error("Failed to load seller data!");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ जेव्हा पेज, सर्च किंवा सॉर्टिंग बदलते तेव्हा डेटा पुन्हा लोड होतो
   useEffect(() => {
     fetchMerchants();
   }, [page, search, sortBy]);
+
+  // 🔥 Fixed PDF Export Logic
+  const exportPDF = () => {
+    try {
+      const doc = new jsPDF();
+      doc.text("Agrowmart - All Sellers List", 14, 15);
+
+      const tableColumn = ["Store Name", "Phone", "Email", "Type", "Status"];
+      const tableRows = merchantsData.map((m) => [
+        m.storeName || m.businessName || m.name || "N/A",
+        m.phone || "N/A",
+        m.email || "N/A",
+        m.vendorType || "N/A",
+        m.status || m.accountStatus || "PENDING",
+      ]);
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 20,
+        theme: "grid",
+        headStyles: { fillColor: [101, 163, 13] }, // Exact Lime Green Theme
+      });
+
+      doc.save("Agrowmart_Sellers.pdf");
+      toast.success("PDF Downloaded Successfully!");
+    } catch (error) {
+      console.error("PDF Export Error:", error);
+      toast.error("Error generating PDF!");
+    }
+  };
+
+  // 🔥 Excel Export Logic
+  const exportExcel = () => {
+    try {
+      const worksheet = XLSX.utils.json_to_sheet(
+        merchantsData.map((m) => ({
+          "Store Name": m.storeName || m.businessName || m.name,
+          "Phone Number": m.phone,
+          "Email Address": m.email,
+          "Vendor Type": m.vendorType,
+          Status: m.status || m.accountStatus,
+          Location: m.address,
+        })),
+      );
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Sellers");
+      XLSX.writeFile(workbook, "Agrowmart_Sellers.xlsx");
+      toast.success("Excel File Downloaded Successfully!");
+    } catch (error) {
+      toast.error("Error generating Excel file!");
+    }
+  };
 
   const pendingCount = useMemo(() => {
     return merchantsData.filter(
@@ -440,8 +504,8 @@ const Sellers = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen text-left w-full overflow-x-hidden">
-      {/* Header Section */}
-      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6">
+      {/* Header & Export Buttons */}
+      <div className="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-gray-700 font-sans">
             All Merchant / Seller{" "}
@@ -454,36 +518,25 @@ const Sellers = () => {
           </p>
         </div>
 
-        <div className="flex gap-3 items-center w-full md:w-auto">
-          {/* Search Bar */}
-          <div className="flex-1 md:flex-none relative md:w-80 bg-white">
-            <input
-              type="text"
-              placeholder="Search by name, email or phone"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              className="w-full px-4 pl-10 py-2 border border-gray-300 rounded-md text-sm outline-none focus:border-green-500"
-            />
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-          </div>
-
-          {/* Sort Dropdown */}
-          <div className="flex-shrink-0">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm bg-white outline-none"
-            >
-              <option value="popular">Sort by : Most Popular</option>
-              <option value="pending">Pending First</option>
-              <option value="approved">Approved First</option>
-            </select>
-          </div>
-
-          {/* Deleted Button */}
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={exportPDF}
+            className="flex items-center gap-2 px-3 py-2 bg-white border border-red-200 text-red-600 rounded-md text-xs font-bold hover:bg-red-50 transition-all shadow-sm"
+          >
+            <FileText size={14} /> PDF
+          </button>
+          <button
+            onClick={exportExcel}
+            className="flex items-center gap-2 px-3 py-2 bg-white border border-green-200 text-green-600 rounded-md text-xs font-bold hover:bg-green-50 transition-all shadow-sm"
+          >
+            <Download size={14} /> Excel
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 text-gray-600 rounded-md text-xs font-bold hover:bg-gray-50 transition-all shadow-sm"
+          >
+            <Printer size={14} /> Print
+          </button>
           <button
             onClick={() => navigate("/deletedsellers")}
             className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-md text-sm font-semibold hover:bg-red-600 hover:text-white transition-all shadow-sm"
@@ -493,30 +546,57 @@ const Sellers = () => {
         </div>
       </div>
 
-      {/* Desktop Table */}
+      {/* Search & Sort */}
+      <div className="mb-6 flex flex-col md:flex-row gap-4">
+        <div className="flex-1 relative bg-white">
+          <input
+            type="text"
+            placeholder="Search by name, email or phone"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            className="w-full px-4 pl-10 py-2 border border-gray-300 rounded-md text-sm outline-none focus:border-green-500"
+          />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+        </div>
+
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-md text-sm bg-white outline-none"
+        >
+          <option value="popular">Sort by : Most Popular</option>
+          <option value="pending">Pending First</option>
+          <option value="approved">Approved First</option>
+        </select>
+      </div>
+
+      {/* Desktop Table View */}
       <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden w-full border border-gray-100">
         <table className="w-full text-sm text-left">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
-              <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">
+              <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase">
                 STORE / BUSINESS NAME
               </th>
-              <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">
+              <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase">
                 PHONE NUMBER
               </th>
-              <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">
+              <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase">
                 EMAIL ADDRESS
               </th>
-              <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">
+              <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase">
                 VENDOR TYPE
               </th>
-              <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">
+              <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase">
                 SUBSCRIPTION
               </th>
-              <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">
+              <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase">
                 APPROVAL STATUS
               </th>
-              <th className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+              <th className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase">
                 ACTIONS
               </th>
             </tr>
@@ -528,7 +608,7 @@ const Sellers = () => {
                   colSpan={7}
                   className="py-20 text-center text-gray-400 italic"
                 >
-                  No sellers found in the list.
+                  No sellers found.
                 </td>
               </tr>
             ) : (
@@ -543,13 +623,10 @@ const Sellers = () => {
                       />
                       <div className="overflow-hidden">
                         <p className="font-semibold text-gray-700 truncate">
-                          {m.storeName ||
-                            m.businessName ||
-                            m.sellerName ||
-                            m.name}
+                          {m.storeName || m.businessName || m.name}
                         </p>
                         <p className="text-[10px] text-gray-400 truncate">
-                          {m.address || "No Location Provided"}
+                          {m.address || "No Location"}
                         </p>
                       </div>
                     </div>
@@ -572,8 +649,7 @@ const Sellers = () => {
                         (m.status || m.accountStatus || "PENDING") ===
                         "APPROVED"
                           ? "text-green-600 bg-green-50 border-green-100"
-                          : (m.status || m.accountStatus || "PENDING") ===
-                              "REJECTED"
+                          : (m.status || m.accountStatus) === "REJECTED"
                             ? "text-red-600 bg-red-50 border-red-100"
                             : "text-yellow-600 bg-yellow-50 border-yellow-100"
                       }`}
@@ -596,50 +672,6 @@ const Sellers = () => {
         </table>
       </div>
 
-      {/* Mobile Cards View */}
-      <div className="md:hidden space-y-4">
-        {merchantsData.map((m) => (
-          <div
-            key={m.id}
-            className="bg-white rounded-lg shadow p-4 text-left border border-gray-100"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <img
-                src={m.photoUrl || "https://via.placeholder.com/40"}
-                className="w-12 h-12 rounded-full object-cover border"
-                alt=""
-              />
-              <div className="flex-1 overflow-hidden">
-                <p className="font-bold text-gray-700 truncate">
-                  {m.storeName || m.businessName || m.name}
-                </p>
-                <p className="text-xs text-gray-400 truncate">
-                  {m.address || "No Location"}
-                </p>
-              </div>
-            </div>
-            <div className="space-y-2 text-sm mb-4 border-t pt-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-500 text-xs uppercase font-bold">
-                  Status:
-                </span>
-                <span
-                  className={`font-black text-[10px] uppercase ${(m.status || m.accountStatus || "PENDING") === "APPROVED" ? "text-green-600" : "text-yellow-600"}`}
-                >
-                  {m.status || m.accountStatus || "PENDING"}
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={() => navigate(`/seller/${m.id}`)}
-              className="w-full px-3 py-2 border border-green-600 text-green-600 rounded-md text-xs font-bold hover:bg-green-600 hover:text-white transition-colors"
-            >
-              View Profile
-            </button>
-          </div>
-        ))}
-      </div>
-
       {/* Pagination */}
       <div className="flex justify-end items-center gap-1 mt-6 text-sm">
         <button
@@ -655,8 +687,8 @@ const Sellers = () => {
             onClick={() => setPage(i + 1)}
             className={`w-7 h-7 rounded text-xs font-bold transition-all ${
               page === i + 1
-                ? "bg-green-600 text-white shadow-md border-green-600"
-                : "text-gray-600 hover:bg-gray-200 border border-transparent"
+                ? "bg-green-600 text-white shadow-md"
+                : "text-gray-600 hover:bg-gray-200"
             }`}
           >
             {i + 1}

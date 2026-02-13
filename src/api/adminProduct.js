@@ -9,7 +9,7 @@ export const getAllProductsForAdmin = async () => {
       },
       headers: {
         "Cache-Control": "no-cache",
-        Pragma: "no-cache",
+       
       },
     });
 

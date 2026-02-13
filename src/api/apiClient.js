@@ -1,4 +1,6 @@
 
+// ==================== 1 ====================
+
 // import axios from "axios";
 // import { getAuthToken, logout, refreshAccessToken } from "./authService";
 
@@ -83,6 +85,9 @@
 // export default api;
 
 
+// ==================== 2 ====================  
+
+
 import axios from "axios";
 import { getAuthToken, logout, refreshAccessToken } from "./authService";
 
@@ -95,12 +100,15 @@ if (!API_BASE_URL) {
   );
 }
 
+
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
 });
+
 
 // 🔐 REQUEST INTERCEPTOR
 api.interceptors.request.use(

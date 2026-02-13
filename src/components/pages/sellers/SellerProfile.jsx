@@ -755,6 +755,7 @@ import {
   Maximize2,
   Download,
   User,
+  Clock,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -777,11 +778,8 @@ const SellerProfile = () => {
   const [documents, setDocuments] = useState([]);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
-  const [successMessage, setSuccessMessage] = useState("");
   const [sellerData, setSellerData] = useState(null);
   const [sellerProducts, setSellerProducts] = useState([]);
-
-  // Professional Image Preview State
   const [previewImage, setPreviewImage] = useState(null);
 
   // Reject States for Documents
@@ -808,16 +806,35 @@ const SellerProfile = () => {
       comment: "Quality is good, but packaging could be better.",
       date: "28 Jan 2026",
     },
-    {
-      id: 3,
-      user: "Rahul Deshmukh",
-      rating: 5,
-      comment: "The best organic products in Pune area.",
-      date: "15 Jan 2026",
-    },
   ];
 
-  // Fetch Profile and Products Data
+  // 🔥 Working Hours Formatter
+  const formatWorkingHours = (hours) => {
+    if (!hours) return "Not Available";
+    try {
+      const parsed = typeof hours === "string" ? JSON.parse(hours) : hours;
+      if (Array.isArray(parsed)) {
+        return (
+          <div className="space-y-1">
+            {parsed.map((item, idx) => (
+              <div key={idx} className="flex gap-2 text-[11px] font-bold">
+                <span className="text-lime-600 w-16 uppercase">
+                  {item.day}:
+                </span>
+                <span className="text-gray-600">
+                  {item.open} - {item.close}
+                </span>
+              </div>
+            ))}
+          </div>
+        );
+      }
+    } catch (e) {
+      return hours;
+    }
+    return hours;
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -825,10 +842,9 @@ const SellerProfile = () => {
       if (profileRes.success) {
         const data = profileRes.data;
         setSellerData(data);
-        // Backend वरून येणारा अचूक स्टेटस सेट करणे
         setApprovalStatus(data.accountStatus?.toLowerCase() || "pending");
 
-        const docs = [
+        setDocuments([
           {
             name: "Shop License",
             status: data.documents?.shopLicensePhotoStatus || "Pending",
@@ -849,8 +865,7 @@ const SellerProfile = () => {
             status: data.documents?.panStatus || "Pending",
             img: data.documents?.pan,
           },
-        ];
-        setDocuments(docs);
+        ]);
       }
 
       const productsRes = await getProductsByVendor(id);
@@ -858,7 +873,7 @@ const SellerProfile = () => {
         setSellerProducts(productsRes.data || []);
       }
     } catch (err) {
-      toast.error("Failed to load data from database!");
+      toast.error("Failed to load data!");
     } finally {
       setLoading(false);
     }
@@ -868,20 +883,7 @@ const SellerProfile = () => {
     fetchData();
   }, [id]);
 
-  const handleDeleteSeller = async () => {
-    if (window.confirm("Are you sure you want to delete this seller?")) {
-      try {
-        const res = await deleteSeller(id);
-        if (res.success) {
-          toast.error("Seller moved to Deleted List!");
-          navigate("/sellers");
-        }
-      } catch (err) {
-        toast.error("Delete action failed!");
-      }
-    }
-  };
-
+  // Main Approve/Reject logic
   const handleApprovalStatusChange = (status) => {
     setConfirmAction(status);
     setShowConfirmation(true);
@@ -894,157 +896,117 @@ const SellerProfile = () => {
       } else {
         await rejectSeller(id, {
           rejectReason: "OTHER",
-          customReason: "Admin rejected profile",
+          customReason: "Admin Rejection",
         });
       }
-
-      // यश मिळाल्यावर मेसेज दाखवणे आणि डेटा रिफ्रेश करणे
-      setSuccessMessage(`Seller has been ${confirmAction} successfully!`);
+      toast.success(`Seller ${confirmAction} successfully!`);
       setShowConfirmation(false);
-
-      // ✅ बॅकएंडवरून अपडेटेड डेटा (Status सह) पुन्हा फेच करणे
-      fetchData();
-
-      setTimeout(() => setSuccessMessage(""), 3000);
+      fetchData(); // Refresh UI with new status
     } catch (err) {
-      toast.error("Status update failed!");
+      toast.error("Action failed!");
     }
   };
 
-  const handleDocumentAction = async (docName, action) => {
-    if (action === "approve") {
-      // डॉक्युमेंट लेव्हलला अप्रूव्हल (येथे तुम्ही डॉक्युमेंट अप्रूव्हल API देखील कॉल करू शकता)
-      setDocuments((prev) =>
-        prev.map((doc) =>
-          doc.name === docName ? { ...doc, status: "Approved" } : doc,
-        ),
-      );
-      toast.success(`${docName} Approved Locally`);
-    } else {
-      const reasonData = rejectReasons[docName];
+  const handleDocumentAction = (docName, action) => {
+    const newStatus = action === "approve" ? "Approved" : "Rejected";
+    setDocuments((prev) =>
+      prev.map((doc) =>
+        doc.name === docName ? { ...doc, status: newStatus } : doc,
+      ),
+    );
+    toast.success(`${docName} ${newStatus}`);
+  };
+
+  const handleDeleteSeller = async () => {
+    if (window.confirm("Permanent delete karayche ka?")) {
       try {
-        const payload = {
-          rejectReason: reasonData.type,
-          customReason:
-            reasonData.type === "OTHER"
-              ? reasonData.custom
-              : `Rejected: ${docName}`,
-        };
-        const res = await rejectSeller(id, payload);
-        if (res.success) {
-          setDocuments((prev) =>
-            prev.map((doc) =>
-              doc.name === docName ? { ...doc, status: "Rejected" } : doc,
-            ),
-          );
-          fetchData(); // रिफ्रेश डेटा
-          toast.error(`${docName} Rejected successfully.`);
-        }
+        await deleteSeller(id);
+        toast.success("Seller Deleted.");
+        navigate("/sellers");
       } catch (err) {
-        toast.error("Failed to update rejection status!");
+        toast.error("Delete failed.");
       }
     }
-  };
-
-  const updateRejectReason = (docName, field, value) => {
-    setRejectReasons((prev) => ({
-      ...prev,
-      [docName]: { ...prev[docName], [field]: value },
-    }));
   };
 
   if (loading)
     return (
-      <div className="p-10 text-center flex flex-col items-center gap-2 min-h-screen justify-center">
+      <div className="min-h-screen flex items-center justify-center flex-col gap-2">
         <Loader2 className="animate-spin text-lime-600 w-10 h-10" />
-        <p className="text-gray-500 font-medium italic">
+        <p className="text-gray-500 font-bold italic">
           Loading Agrowmart Profile...
         </p>
       </div>
     );
 
   if (!sellerData)
-    return (
-      <div className="p-10 text-center text-red-600 font-bold">
-        Vendor data not found.
-      </div>
-    );
+    return <div className="p-10 text-center font-bold">Data not found.</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-2 md:p-6 w-full overflow-x-hidden text-left font-sans">
-      {successMessage && (
-        <div className="max-w-full mx-auto mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg shadow-sm">
-          ✓ {successMessage}
-        </div>
-      )}
-
+    <div className="min-h-screen bg-gray-50 p-2 md:p-6 text-left font-sans">
       {/* Navigation */}
       <div className="max-w-full mx-auto mb-4 flex justify-between items-center px-2">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-bold transition-all"
+          className="flex items-center gap-2 text-gray-600 font-bold transition-all"
         >
           <ArrowLeft size={20} /> Back
         </button>
         <button
           onClick={handleDeleteSeller}
-          className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-2 rounded-lg font-bold border border-red-100 shadow-sm hover:bg-red-600 hover:text-white transition-all"
+          className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-2 rounded-lg font-bold border border-red-100 hover:bg-red-600 hover:text-white transition-all"
         >
           <Trash2 size={16} /> Delete Seller
         </button>
       </div>
 
-      <div className="max-w-full mx-auto bg-white rounded-lg shadow overflow-hidden">
-        {/* Header - Pill Buttons */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-5 gap-4 border-b">
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        {/* Approve/Reject Pills */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 border-b gap-4">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
             Profile Details
           </h1>
           <div className="inline-flex items-center bg-gray-100 rounded-full p-1 border">
             <button
               onClick={() => handleApprovalStatusChange("approved")}
-              className={`px-6 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-all ${approvalStatus === "approved" ? "bg-lime-600 text-white shadow-sm" : "text-gray-700"}`}
+              className={`px-8 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-all ${approvalStatus === "approved" ? "bg-lime-600 text-white shadow" : "text-gray-500"}`}
             >
               Approve
             </button>
             <button
               onClick={() => handleApprovalStatusChange("rejected")}
-              className={`px-6 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-all ${approvalStatus === "rejected" ? "bg-red-500 text-white shadow-sm" : "text-gray-700"}`}
+              className={`px-8 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-all ${approvalStatus === "rejected" ? "bg-red-500 text-white shadow" : "text-gray-700"}`}
             >
               Reject
             </button>
           </div>
         </div>
 
-        {/* Identity Section */}
-        <div className="flex items-center gap-4 p-5 border-b bg-white w-full">
+        {/* Identity */}
+        <div className="flex items-center gap-5 p-6 border-b">
           <img
             src={sellerData.photoUrl || "https://via.placeholder.com/150"}
-            className="w-16 h-16 rounded-full object-cover border-2 border-lime-100 cursor-zoom-in"
-            alt="Seller"
-            onClick={() =>
-              setPreviewImage(
-                sellerData.photoUrl || "https://via.placeholder.com/150",
-              )
-            }
+            className="w-20 h-20 rounded-full object-cover border-2 border-lime-100 cursor-pointer"
+            onClick={() => setPreviewImage(sellerData.photoUrl)}
+            alt=""
           />
-          <div className="overflow-hidden">
-            <h2 className="font-bold text-lg text-gray-900 truncate">
+          <div>
+            <h2 className="font-bold text-xl text-gray-900">
               {sellerData.shop?.shopName || sellerData.businessName}
             </h2>
-            <p className="text-xs text-gray-500 truncate">
+            <p className="text-xs text-gray-500">
               {sellerData.address} • ID: {sellerData.id}
             </p>
           </div>
         </div>
 
-        {/* Tabs Navigation */}
-        <div className="flex gap-4 sm:gap-8 px-4 sm:px-6 border-b overflow-x-auto bg-white sticky top-0 z-10 w-full no-scrollbar">
+        {/* Tabs */}
+        <div className="flex gap-8 px-6 border-b overflow-x-auto no-scrollbar bg-white sticky top-0 z-10">
           {["info", "products", "bank", "reviews"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`py-4 text-xs sm:text-sm font-bold capitalize whitespace-nowrap transition-all ${activeTab === tab ? "border-b-2 border-lime-600 text-lime-600" : "text-gray-500 hover:text-gray-700"}`}
+              className={`py-4 text-xs sm:text-sm font-bold capitalize whitespace-nowrap transition-all ${activeTab === tab ? "border-b-2 border-lime-600 text-lime-600" : "text-gray-400"}`}
             >
               {tab === "info"
                 ? "Store Info"
@@ -1057,149 +1019,100 @@ const SellerProfile = () => {
           ))}
         </div>
 
-        {/* Content Area */}
-        <div className="p-4 sm:p-6 bg-gray-50/30 w-full overflow-hidden">
+        <div className="p-4 sm:p-8 bg-gray-50/20">
+          {/* TAB 1: INFO */}
           {activeTab === "info" && (
-            <div className="space-y-6 w-full">
-              <Section title="Personal Details">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                  <Info label="Full Name" value={sellerData.name} />
-                  <Info label="Email Address" value={sellerData.email} />
-                  <Info label="Phone Number" value={sellerData.phone} />
-                  <Info label="Address" value={sellerData.address} />
+            <div className="space-y-8 animate-in fade-in duration-300">
+              <Section title="PERSONAL DETAILS">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                  <Info label="FULL NAME" value={sellerData.name} />
+                  <Info label="EMAIL ADDRESS" value={sellerData.email} />
+                  <Info label="PHONE NUMBER" value={sellerData.phone} />
+                  <Info label="ADDRESS" value={sellerData.address} />
                 </div>
               </Section>
 
-              <Section title="Store Information">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full">
+              <Section title="STORE INFORMATION">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-6">
                   <Info
-                    label="Store Name"
+                    label="STORE NAME"
                     value={sellerData.shop?.shopName || sellerData.businessName}
                   />
                   <Info
-                    label="Vendor Type"
+                    label="VENDOR TYPE"
                     value={sellerData.shop?.vendorType || sellerData.role?.name}
                   />
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                      <Clock size={10} /> WORKING HOURS
+                    </p>
+                    <div className="bg-white p-2 rounded border border-gray-100 shadow-sm">
+                      {formatWorkingHours(sellerData.shop?.workingHours)}
+                    </div>
+                  </div>
                   <Info
-                    label="Working Hours"
-                    value={sellerData.shop?.workingHours || "7:00 AM – 9:00 PM"}
-                  />
-                  <Info
-                    label="GST Number"
+                    label="GST NUMBER"
                     value={sellerData.shop?.gstCertificateNumber || "N/A"}
                   />
                   <Info
-                    label="Store Address"
+                    label="STORE ADDRESS"
                     value={sellerData.shop?.shopAddress || sellerData.address}
                   />
                 </div>
-                <div className="mt-6 pt-4 border-t">
-                  <h4 className="text-[10px] text-gray-400 font-bold uppercase mb-2">
-                    Description
+                <div className="mt-4 border border-gray-100 p-4 rounded-lg bg-gray-50">
+                  <h4 className="text-[10px] font-black text-gray-400 mb-1 uppercase tracking-widest">
+                    DESCRIPTION
                   </h4>
-                  <p className="text-xs sm:text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border line-clamp-3">
-                    {sellerData.shop?.description || "No description provided."}
+                  <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-medium">
+                    {sellerData.description || "No description provided."}
                   </p>
                 </div>
               </Section>
 
-              <Section title="Store Documents">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+              <Section title="STORE DOCUMENTS">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {documents.map((doc, i) => (
                     <div
                       key={i}
-                      className="border border-gray-200 rounded-xl p-3 flex flex-col sm:flex-row gap-4 bg-white shadow-sm overflow-hidden group"
+                      className="border border-gray-100 rounded-xl p-4 flex flex-col bg-white shadow-sm"
                     >
+                      <div className="flex justify-between items-start mb-3">
+                        <p className="text-[11px] font-black text-gray-800 uppercase">
+                          {doc.name}
+                        </p>
+                        <span
+                          className={`px-2 py-0.5 text-[9px] font-black rounded-full uppercase ${doc.status === "Approved" ? "bg-green-100 text-green-600" : doc.status === "Rejected" ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"}`}
+                        >
+                          {doc.status}
+                        </span>
+                      </div>
                       <div
-                        className="w-full sm:w-40 h-40 bg-gray-100 overflow-hidden rounded border relative cursor-zoom-in flex-shrink-0"
-                        onClick={() =>
-                          setPreviewImage(
-                            doc.img || "https://via.placeholder.com/300x200",
-                          )
-                        }
+                        className="h-32 bg-gray-50 rounded-lg overflow-hidden cursor-zoom-in mb-4 border border-gray-100"
+                        onClick={() => setPreviewImage(doc.img)}
                       >
                         <img
-                          src={doc.img || "https://via.placeholder.com/300x200"}
-                          className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300"
+                          src={doc.img || "https://via.placeholder.com/200"}
+                          className="w-full h-full object-cover"
                           alt=""
                         />
-                        <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Maximize2
-                            className="text-white drop-shadow-md"
-                            size={24}
-                          />
-                        </div>
                       </div>
-                      <div className="flex-1 flex flex-col min-w-0">
-                        <div className="flex justify-between items-start mb-2">
-                          <p className="text-xs font-bold text-gray-700 truncate">
-                            {doc.name}
-                          </p>
-                          <span
-                            className={`px-2 py-0.5 text-[9px] font-bold rounded-full uppercase ${doc.status === "Approved" ? "bg-green-100 text-green-600" : doc.status === "Rejected" ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"}`}
-                          >
-                            {doc.status}
-                          </span>
-                        </div>
-                        {doc.status !== "Approved" && (
-                          <div className="mb-3 space-y-2 mt-auto">
-                            <select
-                              value={rejectReasons[doc.name].type}
-                              onChange={(e) =>
-                                updateRejectReason(
-                                  doc.name,
-                                  "type",
-                                  e.target.value,
-                                )
-                              }
-                              className="w-full text-[10px] p-1.5 border border-gray-200 rounded bg-gray-50 outline-none"
-                            >
-                              <option value="AADHAAR_MISMATCH">
-                                Aadhar Mismatch
-                              </option>
-                              <option value="PAN_MISMATCH">Pan Mismatch</option>
-                              <option value="UDYAM_MISMATCH">
-                                Udyam Mismatch
-                              </option>
-                              <option value="SHOP_LICENSE_MISMATCH">
-                                Invalid License
-                              </option>
-                              <option value="OTHER">Other Reason</option>
-                            </select>
-                            {rejectReasons[doc.name].type === "OTHER" && (
-                              <textarea
-                                placeholder="Reason..."
-                                value={rejectReasons[doc.name].custom}
-                                onChange={(e) =>
-                                  updateRejectReason(
-                                    doc.name,
-                                    "custom",
-                                    e.target.value,
-                                  )
-                                }
-                                className="w-full text-[10px] p-1 border rounded h-10 resize-none"
-                              />
-                            )}
-                          </div>
-                        )}
-                        <div className="flex gap-2 mt-2">
-                          <button
-                            onClick={() =>
-                              handleDocumentAction(doc.name, "approve")
-                            }
-                            className="flex-1 bg-lime-600 text-white py-1.5 rounded-lg text-[10px] font-bold hover:bg-lime-700 transition-all"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleDocumentAction(doc.name, "reject")
-                            }
-                            className="flex-1 border border-red-200 text-red-600 py-1.5 rounded-lg text-[10px] font-bold hover:bg-red-50 transition-all"
-                          >
-                            Reject
-                          </button>
-                        </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() =>
+                            handleDocumentAction(doc.name, "approve")
+                          }
+                          className="flex-1 py-2 text-[10px] border border-gray-300 rounded-lg font-black uppercase hover:bg-green-50 transition-all"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleDocumentAction(doc.name, "reject")
+                          }
+                          className="flex-1 py-2 text-[10px] border border-gray-300 rounded-lg font-black uppercase hover:bg-red-50 transition-all"
+                        >
+                          Reject
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -1208,205 +1121,136 @@ const SellerProfile = () => {
             </div>
           )}
 
+          {/* TAB 2: PRODUCTS */}
           {activeTab === "products" && (
-            <div className="w-full overflow-hidden">
-              <h3 className="text-lg font-bold text-gray-800 mb-6 font-sans">
-                All Products ({sellerProducts.length})
+            <div className="animate-in fade-in duration-300">
+              <h3 className="font-bold mb-6 text-gray-800 flex items-center gap-2">
+                <Package size={20} className="text-lime-600" /> Inventory (
+                {sellerProducts.length})
               </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {sellerProducts.map((p) => (
-                  <div
-                    key={p.id}
-                    className="bg-white border border-gray-100 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all group"
-                  >
+              {sellerProducts.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-5">
+                  {sellerProducts.map((p, i) => (
                     <div
-                      className="h-40 bg-gray-100 relative cursor-zoom-in"
-                      onClick={() =>
-                        setPreviewImage(
-                          p.img || "https://via.placeholder.com/300",
-                        )
-                      }
+                      key={i}
+                      className="border border-gray-100 rounded-xl overflow-hidden group bg-white hover:shadow-lg transition-all"
                     >
-                      <img
-                        src={p.img || "https://via.placeholder.com/300"}
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                        alt=""
-                      />
-                      <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Maximize2
-                          className="text-white drop-shadow-md"
-                          size={20}
+                      <div
+                        className="h-40 overflow-hidden relative cursor-zoom-in"
+                        onClick={() => setPreviewImage(p.img)}
+                      >
+                        <img
+                          src={p.img || "https://via.placeholder.com/200"}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          alt={p.name}
                         />
                       </div>
-                    </div>
-                    <div className="p-3 text-left">
-                      <p className="text-[9px] text-gray-400 font-bold uppercase mb-1">
-                        YH8626KI98
-                      </p>
-                      <h4 className="font-bold text-gray-800 text-xs mb-2 line-clamp-1">
-                        {p.name}
-                      </h4>
-                      <div className="flex justify-between items-center">
-                        <p className="text-sm font-black text-gray-900">
-                          {p.price || "₹0"}
-                        </p>
-                        <div className="flex items-center gap-1 bg-gray-50 px-1.5 py-0.5 rounded">
-                          <Star
-                            size={10}
-                            className="fill-yellow-400 text-yellow-400"
-                          />
-                          <span className="text-[10px] font-bold text-gray-600">
-                            4.5
+                      <div className="p-3">
+                        <h4 className="text-[11px] font-black truncate uppercase tracking-tight text-gray-700">
+                          {p.name}
+                        </h4>
+                        <div className="flex justify-between items-center mt-2">
+                          <p className="text-sm font-black text-lime-600">
+                            ₹{p.price}
+                          </p>
+                          <span className="text-[10px] flex items-center gap-0.5 font-bold text-amber-500">
+                            <Star size={10} className="fill-current" /> 4.5
                           </span>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-20 text-center text-gray-300 font-bold uppercase tracking-widest border-4 border-dashed rounded-[40px]">
+                  No Products Stocked
+                </div>
+              )}
             </div>
           )}
 
+          {/* TAB 3: BANKING */}
           {activeTab === "bank" && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full text-left">
-              <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-                <h4 className="font-bold text-gray-800 mb-6 text-sm flex items-center gap-2">
-                  <Smartphone size={18} className="text-gray-400" /> Mobile
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 animate-in zoom-in-95 duration-500">
+              <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
+                <h4 className="font-black text-[11px] text-gray-800 uppercase tracking-widest flex items-center gap-2">
+                  <Smartphone size={16} className="text-lime-600" /> Mobile
                   Payment
                 </h4>
                 <Info
-                  label="UPI ID"
-                  value={sellerData?.upiId || "8887770080@bdi"}
+                  label="REGISTERED UPI ID"
+                  value={sellerData?.upiId || "Not Available"}
                 />
               </div>
-              <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-                <h4 className="font-bold text-gray-800 mb-6 text-sm flex items-center gap-2">
-                  <QrCode size={18} className="text-gray-400" /> QR Code
+              <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
+                <h4 className="font-black text-[11px] text-gray-800 uppercase tracking-widest flex items-center gap-2">
+                  <QrCode size={16} className="text-lime-600" /> Store QR Code
                 </h4>
-                <Info label="Merchant Id" value="4075800480" />
-                <div
-                  className="w-32 h-32 bg-gray-50 border rounded-lg p-2 mt-4 cursor-zoom-in"
-                  onClick={() =>
-                    setPreviewImage(
-                      "https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=Agrowmart",
-                    )
-                  }
-                >
+                <div className="bg-gray-50 p-4 rounded-2xl border border-dashed flex justify-center">
                   <img
-                    src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Agrowmart"
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${sellerData?.upiId || "Agrowmart"}`}
+                    className="w-32 h-32 rounded mix-blend-multiply"
                     alt="QR"
-                    className="w-full h-full object-contain"
                   />
                 </div>
               </div>
-              <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm font-sans text-left">
-                <h4 className="font-bold text-gray-800 mb-6 text-sm flex items-center gap-2">
-                  <CreditCard size={18} className="text-gray-400" /> Card
+              <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
+                <h4 className="font-black text-[11px] text-gray-800 uppercase tracking-widest flex items-center gap-2">
+                  <CreditCard size={16} className="text-lime-600" /> Settlement
                   Details
                 </h4>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <Info
-                    label="First Name"
-                    value={
-                      sellerData?.accountHolderName?.split(" ")[0] || "Sanjay"
-                    }
-                  />
-                  <Info
-                    label="Last Name"
-                    value={
-                      sellerData?.accountHolderName?.split(" ")[1] || "Kumar"
-                    }
-                  />
-                </div>
                 <Info
-                  label="Card Number"
+                  label="ACCOUNT NUMBER"
                   value={
                     sellerData?.bankAccountNumber
-                      ? `**** **** **** ${sellerData.bankAccountNumber.slice(-4)}`
-                      : "1098 7400 1768 1986"
+                      ? `**** **** ${sellerData.bankAccountNumber.slice(-4)}`
+                      : "N/A"
                   }
                 />
-                <div className="mt-4">
-                  <Info label="Valid Until" value="December 2030" />
-                </div>
+                <Info label="IFSC CODE" value={sellerData?.ifscCode || "N/A"} />
               </div>
             </div>
           )}
 
-          {/* REVIEWS AND RATINGS TAB */}
+          {/* TAB 4: REVIEWS */}
           {activeTab === "reviews" && (
-            <div className="space-y-8 w-full text-left">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-center">
-                  <h4 className="text-4xl font-black text-gray-900 mb-1">
-                    4.8
-                  </h4>
-                  <div className="flex justify-center gap-1 mb-2">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star
-                        key={s}
-                        size={18}
-                        className="fill-yellow-400 text-yellow-400"
-                      />
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">
-                    Average Rating
-                  </p>
-                </div>
-                <div className="md:col-span-2 space-y-3">
-                  {[5, 4, 3, 2, 1].map((num) => (
-                    <div key={num} className="flex items-center gap-4">
-                      <span className="text-xs font-bold text-gray-500 w-4">
-                        {num}
-                      </span>
-                      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-lime-500 rounded-full"
-                          style={{
-                            width: num === 5 ? "85%" : num === 4 ? "10%" : "2%",
-                          }}
-                        ></div>
-                      </div>
-                      <span className="text-xs font-bold text-gray-400 w-10">
-                        {num === 5 ? "85%" : num === 4 ? "10%" : "2%"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <div className="p-4 sm:p-6 animate-in fade-in duration-300">
+              <h3 className="font-bold mb-6 text-gray-800 uppercase tracking-widest text-sm border-l-4 border-lime-600 pl-4">
+                Product Review & Rating
+              </h3>
               <div className="space-y-4">
-                <h3 className="text-lg font-bold text-gray-800">
-                  Latest Customer Reviews
-                </h3>
-                {dummyReviews.map((rev) => (
+                {dummyReviews.map((item, i) => (
                   <div
-                    key={rev.id}
-                    className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex gap-4"
+                    key={i}
+                    className="border border-gray-100 rounded-2xl p-5 flex gap-4 bg-white shadow-sm"
                   >
-                    <div className="w-10 h-10 bg-lime-50 rounded-full flex items-center justify-center text-lime-600 flex-shrink-0">
+                    <div className="w-10 h-10 bg-lime-50 rounded-full flex items-center justify-center text-lime-600">
                       <User size={20} />
                     </div>
                     <div className="flex-1">
                       <div className="flex justify-between items-start mb-1">
-                        <h5 className="font-bold text-gray-800 text-sm">
-                          {rev.user}
+                        <h5 className="font-bold text-sm text-gray-800">
+                          {item.user}
                         </h5>
-                        <span className="text-[10px] text-gray-400 font-bold">
-                          {rev.date}
+                        <span className="text-[10px] text-gray-400 font-bold uppercase">
+                          {item.date}
                         </span>
                       </div>
                       <div className="flex gap-0.5 mb-2">
-                        {[...Array(rev.rating)].map((_, i) => (
+                        {[...Array(5)].map((_, idx) => (
                           <Star
-                            key={i}
+                            key={idx}
                             size={10}
-                            className="fill-yellow-400 text-yellow-400"
+                            className={
+                              idx < item.rating
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "fill-gray-200 text-gray-200"
+                            }
                           />
                         ))}
                       </div>
-                      <p className="text-sm text-gray-600 leading-relaxed">
-                        {rev.comment}
+                      <p className="text-xs text-gray-600 leading-relaxed font-medium">
+                        "{item.comment}"
                       </p>
                     </div>
                   </div>
@@ -1417,105 +1261,74 @@ const SellerProfile = () => {
         </div>
       </div>
 
-      {/* PROFESSIONAL IMAGE MODAL */}
-      {previewImage && (
-        <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[500] flex flex-col items-center justify-center p-4 transition-all duration-300"
-          onClick={() => setPreviewImage(null)}
-        >
-          <div
-            className="w-full max-w-4xl flex justify-between items-center mb-4 text-white"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-sm font-bold opacity-80 uppercase tracking-widest flex items-center gap-2">
-              {" "}
-              <Package size={16} /> Image Preview{" "}
-            </h3>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => {
-                  const link = document.createElement("a");
-                  link.href = previewImage;
-                  link.download = "img.png";
-                  link.click();
-                }}
-                className="bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition-colors"
-              >
-                <Download size={20} />
-              </button>
-              <button
-                onClick={() => setPreviewImage(null)}
-                className="bg-white/10 hover:bg-red-500 p-2.5 rounded-full transition-all"
-              >
-                <X size={20} />
-              </button>
-            </div>
-          </div>
-          <div
-            className="relative max-w-4xl w-full max-h-[80vh] flex items-center justify-center bg-white/5 rounded-3xl p-2 border border-white/10 overflow-hidden shadow-2xl animate-in zoom-in duration-300"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <img
-              src={previewImage}
-              className="max-w-full max-h-[75vh] object-contain rounded-2xl"
-              alt="Preview"
-            />
-          </div>
-        </div>
-      )}
-
       {/* Confirmation Modal */}
       {showConfirmation && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full animate-in fade-in zoom-in duration-200">
-            <h3 className="text-lg font-bold text-gray-900 mb-2 font-sans">
-              Confirm Action
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-6">
+          <div className="bg-white rounded-[40px] p-10 max-w-sm w-full shadow-2xl text-center animate-in zoom-in-95 duration-300">
+            <h3 className="text-2xl font-black mb-3 text-gray-900 tracking-tight">
+              Confirm Status
             </h3>
-            <p className="text-sm text-gray-600 mb-6 font-medium">
-              Mark this account as{" "}
-              <span className="font-bold uppercase text-gray-900">
+            <p className="text-gray-400 mb-10 font-bold leading-relaxed">
+              Update this account status to{" "}
+              <span className="text-gray-900 underline uppercase">
                 {confirmAction}
               </span>
               ?
             </p>
-            <div className="flex gap-3 justify-end">
+            <div className="flex gap-4">
               <button
                 onClick={() => setShowConfirmation(false)}
-                className="px-5 py-2 text-xs font-bold text-gray-500 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all"
+                className="flex-1 py-4 text-xs font-black uppercase tracking-widest text-gray-400 bg-gray-100 rounded-2xl hover:bg-gray-200 transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmApprovalAction}
-                className={`px-5 py-2 text-xs font-bold text-white rounded-xl shadow-lg transition-all ${confirmAction === "approved" ? "bg-lime-600 shadow-lime-100" : "bg-red-500 shadow-red-100"}`}
+                className={`flex-1 py-4 text-xs font-black uppercase tracking-widest text-white rounded-2xl shadow-lg transition-all ${confirmAction === "approved" ? "bg-lime-600 hover:bg-lime-700" : "bg-red-500 hover:bg-red-600"}`}
               >
-                Confirm Action
+                Confirm
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Image Preview Overlay */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[1100] flex items-center justify-center p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button className="absolute top-10 right-10 text-white hover:text-red-500 transition-colors">
+            <X size={40} />
+          </button>
+          <img
+            src={previewImage}
+            className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border-4 border-white/10"
+            alt="Preview"
+          />
         </div>
       )}
     </div>
   );
 };
 
-// UI Components
 const Section = ({ title, children }) => (
-  <div className="border border-gray-100 rounded-2xl p-5 mb-6 bg-white w-full shadow-sm text-left">
-    <h3 className="font-bold mb-5 text-sm text-gray-800 border-l-4 border-lime-500 pl-3 uppercase tracking-wider font-sans">
+  <div className="border border-gray-100 rounded-3xl p-6 sm:p-8 bg-white shadow-sm mb-6">
+    <h3 className="font-black mb-8 text-[11px] text-lime-600 uppercase tracking-[3px] border-l-4 border-lime-600 pl-5">
       {title}
     </h3>
-    <div className="w-full">{children}</div>
+    <div>{children}</div>
   </div>
 );
 
 const Info = ({ label, value }) => (
-  <div className="flex-1 min-w-0 overflow-hidden text-left">
-    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1 truncate font-sans">
+  <div className="min-w-0">
+    <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1.5">
       {label}
     </p>
-    <p className="text-xs sm:text-sm font-bold text-gray-700 break-words line-clamp-2 font-sans">
-      {value || "—"}
+    <p className="text-sm font-black text-gray-700 truncate">
+      {value || "---"}
     </p>
   </div>
 );

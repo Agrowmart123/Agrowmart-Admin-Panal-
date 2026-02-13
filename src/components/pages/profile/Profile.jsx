@@ -260,9 +260,11 @@
 
 // export default AdminProfile;
 
-// ***********Axios Added****************************
+// ******************************Axios Added****************************
 
 import React, { useState, useEffect } from "react";
+import { toast } from "react-hot-toast";
+
 import { getMyProfile, updateMyProfile } from "../../../api/profileApi.js";
 
 const ProfileInputField = React.memo(
@@ -313,7 +315,7 @@ const AdminProfile = () => {
         });
       } catch (err) {
         console.error("Failed to load profile", err);
-        alert("Failed to load profile");
+        toast.error("Failed to load profile");
       } finally {
         setLoading(false);
       }
@@ -356,12 +358,12 @@ const AdminProfile = () => {
     setIsEditing(true);
   };
 
-  // Function to handle form submission (Save Changes)
+ 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!profile.fullName.trim()) {
-      alert("Full name is required");
+      toast.error("Full name is required");
       return;
     }
 
@@ -369,13 +371,23 @@ const AdminProfile = () => {
       const formData = new FormData();
       formData.append("fullName", profile.fullName);
 
+      // Remove space from phone before sending
+      const cleanedPhone = profile.phone.replace(/\s/g, "");
+      formData.append("phone", cleanedPhone); 
+
       if (photoFile) {
         formData.append("photo", photoFile);
       }
 
       const res = await updateMyProfile(formData);
 
-      alert(res.data.message || "Profile updated");
+      toast.success(res.data.message || "Profile updated successfully");
+
+      window.dispatchEvent(
+        new CustomEvent("profile-updated", {
+          detail: { photoUrl: res.data.photoUrl },
+        }),
+      );
 
       setProfile((prev) => ({
         ...prev,
@@ -386,7 +398,7 @@ const AdminProfile = () => {
       setIsEditing(false);
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Update failed");
+      toast.error(err.response?.data?.message || "Update failed");
     }
   };
 
@@ -395,7 +407,7 @@ const AdminProfile = () => {
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      alert("Image must be under 2MB");
+      toast.error("Image must be under 2MB");
       return;
     }
 
@@ -421,11 +433,23 @@ const AdminProfile = () => {
     return () => window.removeEventListener("beforeunload", warnUser);
   }, [isEditing]);
 
-  
+  const getInitials = (name) => {
+    if (!name || typeof name !== "string") return "?";
+    const trimmed = name.trim();
+    if (!trimmed) return "?";
+
+    const parts = trimmed.split(/\s+/);
+    if (parts.length === 1) {
+      return parts[0].charAt(0).toUpperCase();
+    }
+    return (
+      parts[0].charAt(0) + parts[parts.length - 1].charAt(0)
+    ).toUpperCase();
+  };
+
   if (loading) {
     return <div className="p-10 text-center">Loading profile...</div>;
   }
-
 
   // The main component render
   return (
@@ -438,7 +462,7 @@ const AdminProfile = () => {
         {/* Photo Section */}
         <div className="flex flex-col items-center space-y-4 pb-6 border-b border-gray-200 mb-6">
           {/* Circular Photo/Icon */}
-          <div className="w-30 h-30 flex-shrink-0">
+          <div className="w-32 h-32 flex-shrink-0">
             <div className="w-full h-full rounded-full bg-[green] flex items-center justify-center text-white">
               {/* Person Icon */}
               <div className="w-30 h-30 flex-shrink-0">
@@ -449,16 +473,10 @@ const AdminProfile = () => {
                     className="w-full h-full rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full rounded-full bg-[green] flex items-center justify-center text-white">
-                    {/* Default person icon */}
-                    <svg
-                      className="w-12 h-12"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                    </svg>
+                  <div className="w-full h-full rounded-full bg-green-600 flex items-center justify-center text-white">
+                    <span className="text-4xl font-bold">
+                      {getInitials(profile.fullName) || "?"}
+                    </span>
                   </div>
                 )}
               </div>
@@ -469,8 +487,9 @@ const AdminProfile = () => {
           <div className="flex flex-col items-center space-y-4 text-center">
             <label htmlFor="photo-upload" className="cursor-pointer">
               <span className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                Change Photo
+                {profile.profilePhotoUrl ? "Change Photo" : "Add Photo"}
               </span>
+
               <input
                 id="photo-upload"
                 type="file"

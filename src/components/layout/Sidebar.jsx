@@ -5,7 +5,7 @@ import {
   formatRole,
   isSuperAdmin,
   getCurrentUser,
-  logout
+  logout,
 } from "../../api/authService";
 
 // icons
@@ -21,6 +21,7 @@ export default function Sidebar({ open, setOpen, activePage, setActivePage }) {
   const [usersOpen, setUsersOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
+  const [websitesOpen, setWebsitesOpen] = useState(false);
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -37,15 +38,15 @@ export default function Sidebar({ open, setOpen, activePage, setActivePage }) {
   }, [open]);
 
   // Get menu items
- const user = getCurrentUser();
+  const user = getCurrentUser();
 
-const menuItems = menuConfig.filter((item) => {
-  // Admins menu only for SUPER_ADMIN 
-  if (item.label === "Admins" && user?.role !== "SUPER_ADMIN") {
-    return false;
-  }
-  return true;
-});
+  const menuItems = menuConfig.filter((item) => {
+    // Admins menu only for SUPER_ADMIN
+    if (item.label === "Admins" && user?.role !== "SUPER_ADMIN") {
+      return false;
+    }
+    return true;
+  });
 
   // Close sidebar when clicking outside (Only for Mobile)
   useEffect(() => {
@@ -211,6 +212,15 @@ const menuItems = menuConfig.filter((item) => {
                     if (!open) setOpen(true);
                     return;
                   }
+
+                  if (item.label === "Websites") {
+                    setWebsitesOpen(!websitesOpen);
+                    setUsersOpen(false);
+                    setProductsOpen(false);
+                    setOrdersOpen(false);
+                    if (!open) setOpen(true);
+                    return;
+                  }
                 }
 
                 // Normal items (NO dropdown)
@@ -248,26 +258,35 @@ const menuItems = menuConfig.filter((item) => {
               >
                 <p className="duration-500 overflow-hidden">{item.label}</p>
                 {/* Arrow Icon for dropdowns */}
-                {item.subItems &&
-                  (item.label === "Users" ? (
-                    usersOpen ? (
-                      <MdKeyboardArrowDown />
-                    ) : (
-                      <MdKeyboardArrowRight />
-                    )
-                  ) : item.label === "Products" ? (
-                    productsOpen ? (
-                      <MdKeyboardArrowDown />
-                    ) : (
-                      <MdKeyboardArrowRight />
-                    )
-                  ) : item.label === "Orders" ? (
-                    ordersOpen ? (
-                      <MdKeyboardArrowDown />
-                    ) : (
-                      <MdKeyboardArrowRight />
-                    )
-                  ) : null)}
+                {item.subItems && (
+                  <>
+                    {item.label === "Users" ? (
+                      usersOpen ? (
+                        <MdKeyboardArrowDown />
+                      ) : (
+                        <MdKeyboardArrowRight />
+                      )
+                    ) : item.label === "Products" ? (
+                      productsOpen ? (
+                        <MdKeyboardArrowDown />
+                      ) : (
+                        <MdKeyboardArrowRight />
+                      )
+                    ) : item.label === "Orders" ? (
+                      ordersOpen ? (
+                        <MdKeyboardArrowDown />
+                      ) : (
+                        <MdKeyboardArrowRight />
+                      )
+                    ) : item.label === "Websites" ? (
+                      websitesOpen ? (
+                        <MdKeyboardArrowDown />
+                      ) : (
+                        <MdKeyboardArrowRight />
+                      )
+                    ) : null}
+                  </>
+                )}
               </div>
 
               {/* Hover label when closed */}
@@ -303,6 +322,7 @@ const menuItems = menuConfig.filter((item) => {
                     }
                   `}
                   >
+                    {sub.icon && <sub.icon className="text-sm" />}
                     {sub.label}
                   </li>
                 ))}
@@ -332,6 +352,7 @@ const menuItems = menuConfig.filter((item) => {
                       }
                     `}
                     >
+                      {sub.icon && <sub.icon className="text-sm" />}
                       {sub.label}
                     </li>
                   ))}
@@ -358,11 +379,42 @@ const menuItems = menuConfig.filter((item) => {
                       }
                     `}
                   >
+                    {sub.icon && <sub.icon className="text-sm" />}
                     {sub.label}
                   </li>
                 ))}
               </div>
             )}
+
+            {item.subItems &&
+              item.label === "Websites" &&
+              websitesOpen &&
+              open && (
+                <div className="flex flex-col">
+                  {item.subItems.map((sub, i) => (
+                    <li
+                      key={i}
+                      onClick={() => {
+                        setActivePage(`Websites › ${sub.label}`);
+                        navigate(sub.path);
+                        if (isMobile) setOpen(false);
+                      }}
+                      className={`
+          pl-14 py-2 my-1 rounded-md cursor-pointer flex gap-2 items-center text-sm
+          ${
+            activePage === `Websites › ${sub.label}`
+              ? "text-yellow-400 font-bold"
+              : "text-white"
+          }
+          hover:text-black hover:font-bold
+        `}
+                    >
+                      {sub.icon && <sub.icon className="text-sm" />}
+                      {sub.label}
+                    </li>
+                  ))}
+                </div>
+              )}
           </div>
         ))}
       </ul>

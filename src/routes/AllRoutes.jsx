@@ -28,7 +28,10 @@ import AgriProductDetail from "../components/pages/agri_products/AgriProductDeta
 import Categories from "../components/pages/categories/Categories";
 import MarketRates from "../components/pages/market/MarketRates";
 import WeatherSettings from "../components/pages/weather/WeatherSettings";
-import WebsiteContentMgnt from "../components/pages/website-content/WebsiteContentMgnt";
+import BannersManagement from "../components/pages/website-content/Banners";
+import BlogsManagement from "../components/pages/website-content/Blogs";
+import MediaManagement from "../components/pages/website-content/MediaGallery";
+import PagesManagement from "../components/pages/website-content/Pages";
 import Admins from "../components/pages/admins/Admins";
 import TicketsSupport from "../components/pages/support/TicketsSupport";
 import TicketDetail from "../components/pages/support/TicketDetail";
@@ -110,8 +113,10 @@ const AllRoutes = () => {
 
           <Route path="/market-rates" element={<MarketRates />} />
           <Route path="/weather-settings" element={<WeatherSettings />} />
-          <Route path="/websites" element={<WebsiteContentMgnt />} />
-
+          <Route path="/websites-banners" element={<BannersManagement />} />
+          <Route path="/websites-blogs" element={<BlogsManagement />} />
+          <Route path="/websites-media" element={<MediaManagement />} />
+          <Route path="/websites-pages" element={<PagesManagement />} />
           <Route
             path="/admins"
             element={
@@ -129,7 +134,7 @@ const AllRoutes = () => {
           <Route path="/activity-log" element={<ActivityLog />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/notifications" element={<Notifications />} />
-          <Route path="/profile" element={<Profile/>} />
+          <Route path="/profile" element={<Profile />} />
         </Route>
       </Routes>
     </BrowserRouter>

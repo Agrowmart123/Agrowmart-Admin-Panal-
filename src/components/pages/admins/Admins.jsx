@@ -444,6 +444,8 @@
 import toast, { Toaster } from "react-hot-toast";
 import { useState, useEffect } from "react";
 import logo from "../../../assets/Logo1.png";
+import { Eye, EyeOff } from "lucide-react";
+
 import {
   getTeamMembers,
   addTeamMember,
@@ -475,32 +477,60 @@ export default function App() {
   const [role, setRole] = useState("");
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState("+91 ");
+
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Fetch team members on component mount
   useEffect(() => {
     fetchTeamMembers();
   }, []);
 
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      console.log("Profile updated event received → refetching team members");
+      fetchTeamMembers();
+    };
+
+    window.addEventListener("profile-updated", handleProfileUpdate);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("profile-updated", handleProfileUpdate);
+    };
+  }, []);
+
+  const getInitials = (fullName) => {
+    if (!fullName) return "?";
+    const names = fullName.trim().split(/\s+/);
+    if (names.length === 1) return names[0].charAt(0).toUpperCase();
+    return (
+      names[0].charAt(0) + names[names.length - 1].charAt(0)
+    ).toUpperCase();
+  };
+
   const fetchTeamMembers = async () => {
     setIsLoading(true);
     try {
       const response = await getTeamMembers();
       console.log("Team members response:", response.data);
-      
+
       // Map backend data to frontend format
       const mappedMembers = response.data.map((member) => ({
         id: member.id,
+        fullName: member.fullName || "",
         firstName: member.fullName?.split(" ")[0] || "",
         lastName: member.fullName?.split(" ").slice(1).join(" ") || "",
         email: member.email,
-        Phone: member.phone || "+91 98765 43210",
+        Phone: member.phone || "",
         password: "********",
         role: formatRoleName(member.role),
         photoUrl: member.photoUrl || null,
-        isLogo: member.role === "SUPER_ADMIN",
+        displayLogo: member.role === "SUPER_ADMIN" && !member.photoUrl,
+        isSuperAdmin: member.role === "SUPER_ADMIN",
         active: member.active,
+        initials: getInitials(member.fullName),
       }));
 
       setMembers(mappedMembers);
@@ -541,56 +571,68 @@ export default function App() {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!role) {
-    toast.error("Please select a role!");
-    return;
-  }
-
-  setIsLoading(true);
-
-  try {
-    const formData = new FormData();
-
-    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
-    formData.append("fullName", fullName);
-    formData.append("phone", phone);
-    formData.append("role", formatRoleForBackend(role));
-
-    if (!editingMember) {
-      formData.append("email", email.trim());
-      if (password) formData.append("password", password);
+    if (!role) {
+      toast.error("Please select a role!");
+      return;
     }
 
-    if (photoFile) {
-      formData.append("photo", photoFile);
-    }
+    setIsLoading(true);
 
-    if (editingMember) {
-      // UPDATE
-      await updateTeamMember(editingMember.id, formData);
-      toast.success(`${firstName} updated successfully!`);
-    } else {
-      // ADD
-      await addTeamMember(formData);
-      toast.success(`${firstName} added successfully!`);
-    }
+    try {
+      const formData = new FormData();
 
-    // Refresh the list
-    await fetchTeamMembers();
-    closeModal();
-  } catch (error) {
-    console.error("Error saving team member:", error);
-    const errorMessage =
-      error.response?.data?.error ||
-      error.response?.data?.message ||
-      "Failed to save team member";
-    toast.error(errorMessage);
-  } finally {
-    setIsLoading(false);
-  }
-};
+      const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+      formData.append("fullName", fullName);
+      formData.append("phone", phone);
+      formData.append("role", formatRoleForBackend(role));
+
+      if (!editingMember) {
+        if (!email.trim()) {
+          toast.error("Email is required!");
+          setIsLoading(false);
+          return;
+        }
+
+        if (!password || password.length < 6) {
+          toast.error("Password must be at least 6 characters!");
+          setIsLoading(false);
+          return;
+        }
+
+        formData.append("email", email.trim());
+        formData.append("password", password);
+      }
+
+      if (photoFile) {
+        formData.append("photo", photoFile);
+      }
+
+      if (editingMember) {
+        // UPDATE
+        await updateTeamMember(editingMember.id, formData);
+        toast.success(`${firstName} updated successfully!`);
+      } else {
+        // ADD
+        await addTeamMember(formData);
+        toast.success(`${firstName} added successfully!`);
+      }
+
+      // Refresh the list
+      await fetchTeamMembers();
+      closeModal();
+    } catch (error) {
+      console.error("Error saving team member:", error);
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        "Failed to save team member";
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleDeleteClick = (member) => {
     setMemberToDelete(member);
@@ -604,7 +646,7 @@ export default function App() {
     try {
       await deleteTeamMember(memberToDelete.id);
       toast.success(`${memberToDelete.firstName} has been removed.`);
-      
+
       // Refresh the list
       await fetchTeamMembers();
       setIsDeleteModalOpen(false);
@@ -628,7 +670,7 @@ export default function App() {
     setLastName("");
     setEmail("");
     setRole("");
-    setPhone("");
+    setPhone("+91 ");
     setPassword("");
     setPhotoPreview(null);
     setPhotoFile(null);
@@ -699,28 +741,34 @@ export default function App() {
               className="bg-white rounded-xl p-8 shadow-[0_4px_20px_rgba(0,0,0,0.05)] border border-gray-50 flex flex-col items-center relative transition-transform hover:scale-[1.02]"
             >
               <div className="w-28 h-28 mb-4 relative">
-                {member.isLogo ? (
-                  <div className="w-full h-full flex items-center justify-center overflow-hidden p-1">
+                <div className="w-28 h-28 mb-4 relative">
+                  {member.photoUrl ? (
+                    <img
+                      src={`${member.photoUrl}?t=${new Date().getTime()}`}
+                      alt={`${member.fullName} profile`}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : member.displayLogo ? (
                     <img
                       src={logo}
-                      alt="Agrowmart Logo"
-                      className="w-full h-full object-contain"
+                      alt="Super Admin Logo"
+                      className="w-full h-full rounded-full object-cover"
                     />
-                  </div>
-                ) : (
-                  <img
-                    src={member.photoUrl || "https://via.placeholder.com/150"}
-                    alt={`${member.firstName} profile`}
-                    className="w-full h-full rounded-full object-cover border-4 border-[#e9f0f7]"
-                  />
-                )}
+                  ) : (
+                    <div className="w-full h-full rounded-full bg-green-100 flex items-center justify-center border-4 border-[#e9f0f7]">
+                      <span className="text-green-700 text-3xl font-bold">
+                        {member.initials || "?"}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
               <h3 className="text-gray-800 font-semibold text-base">
                 {member.firstName} {member.lastName}
               </h3>
               <p className="text-gray-400 text-xs mt-1 mb-6">{member.role}</p>
 
-              {!member.isLogo && (
+              {!member.isSuperAdmin && (
                 <div className="flex gap-2 w-full">
                   <button
                     onClick={() => handleEditClick(member)}
@@ -761,7 +809,7 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-sm font-bold text-gray-700">
-                    Name
+                    Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -786,7 +834,7 @@ export default function App() {
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-bold text-gray-700">
-                  Email Address
+                  Email Address <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="email"
@@ -801,7 +849,7 @@ export default function App() {
 
               <div className="space-y-1">
                 <label className="text-sm font-bold text-gray-700">
-                  Phone Number
+                  Phone Number <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="tel"
@@ -809,32 +857,60 @@ export default function App() {
                   value={phone}
                   required
                   className="w-full p-3 bg-white border border-gray-200 rounded-md outline-none focus:border-[green]"
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    let value = e.target.value.replace(/[^\d+]/g, "");
+
+                    if (!value.startsWith("+91")) {
+                      value = "+91" + value.replace(/^\+?/, "");
+                    }
+
+                    if (!value.startsWith("+91 ")) {
+                      value = "+91 " + value.slice(3).trim();
+                    }
+
+                    value = value.slice(0, 14); // +91 + 10 digits
+
+                    setPhone(value);
+                  }}
                   disabled={isLoading}
                 />
               </div>
-              
+
               {!editingMember && (
-                <div className="space-y-1">
+                <div className="space-y-1 relative">
                   <label className="text-sm font-bold text-gray-700">
-                    Password
+                    Password <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="password"
-                    placeholder="Enter password (optional - auto-generated if empty)"
-                    value={password}
-                    className="w-full p-3 bg-white border border-gray-200 rounded-md outline-none focus:border-[green]"
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter password (min 6 chars)"
+                      value={password}
+                      required
+                      minLength={6}
+                      className="w-full p-3 bg-white border border-gray-200 rounded-md outline-none focus:border-[green]"
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Leave empty to auto-generate a secure password
+                    Minimum 6 characters required
                   </p>
                 </div>
               )}
 
               <div className="space-y-1">
-                <label className="text-sm font-bold text-gray-700">Role</label>
+                <label className="text-sm font-bold text-gray-700">
+                  {" "}
+                  Role <span className="text-red-500">*</span>
+                </label>
                 <select
                   required
                   value={role}
@@ -884,8 +960,8 @@ export default function App() {
                 {isLoading
                   ? "Processing..."
                   : editingMember
-                  ? "Save Changes"
-                  : "Add Member"}
+                    ? "Save Changes"
+                    : "Add Member"}
               </button>
             </form>
           </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { CiMenuFries } from "react-icons/ci";
@@ -13,16 +12,22 @@ import {
 } from "react-icons/fa";
 
 import logo from "../../assets/Logo1.png";
+import { MdKeyboardArrowDown } from "react-icons/md";
 import {
   formatRole,
   getCurrentUser,
   isSuperAdmin,
-  logout
+  logout,
 } from "../../api/authService";
 import { menuConfig } from "../layout/menuConfig";
 
 const searchTypeIconMap = menuConfig.reduce((acc, item) => {
   acc[item.label] = item.icon;
+  if (item.subItems) {
+    item.subItems.forEach((sub) => {
+      acc[`${item.label} › ${sub.label}`] = item.icon;
+    });
+  }
   return acc;
 }, {});
 
@@ -38,6 +43,10 @@ const searchPlaceholderMap = {
   Reviews: "Search reviews",
   Payments: "Search payments",
   Settings: "Search settings",
+  "Websites › Banners": "Search banners by title",
+  "Websites › Blogs / News": "Search blogs/news by title",
+  "Websites › Media Gallery": "Search media by title",
+  "Websites › Pages": "Search pages by title",
 };
 
 export default function Header({ open, setOpen, activePage, setActivePage }) {
@@ -48,6 +57,7 @@ export default function Header({ open, setOpen, activePage, setActivePage }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const [openParent, setOpenParent] = useState(null);
 
   const [searchType, setSearchType] = useState("Dashboard");
 
@@ -58,12 +68,6 @@ export default function Header({ open, setOpen, activePage, setActivePage }) {
     const user = getCurrentUser();
     setCurrentUser(user);
   }, []);
-
-  useEffect(() => {
-    if (searchValue === "") {
-      setSearchType("Dashboard");
-    }
-  }, [searchValue]);
 
   const filteredMenuConfig = menuConfig.filter((item) => {
     if (item.requiresSuperAdmin) {
@@ -96,7 +100,10 @@ export default function Header({ open, setOpen, activePage, setActivePage }) {
     "Categories",
     "Market Rates",
     "Weather Settings",
-    "Websites",
+    "Websites › Banners",
+    "Websites › Blogs / News",
+    "Websites › Media Gallery",
+    "Websites › Pages",
     "Offers",
     "Admins",
     "Tickets / Support",
@@ -105,6 +112,7 @@ export default function Header({ open, setOpen, activePage, setActivePage }) {
     "Payments",
     "Settings",
   ];
+
   const searchTypeRoutes = {
     Dashboard: "/dashboard",
     Users: "/customers",
@@ -113,7 +121,10 @@ export default function Header({ open, setOpen, activePage, setActivePage }) {
     Categories: "/categories",
     "Market Rates": "/market-rates",
     "Weather Settings": "/weather-settings",
-    Websites: "/websites",
+    "Websites › Banners": "/websites-banners",
+    "Websites › Blogs / News": "/websites-blogs",
+    "Websites › Media Gallery": "/websites-media",
+    "Websites › Pages": "/websites-pages",
     Offers: "/offers",
     Admins: "/admins",
     "Tickets / Support": "/support",
@@ -122,6 +133,21 @@ export default function Header({ open, setOpen, activePage, setActivePage }) {
     Payments: "/payment",
     Settings: "/settings",
   };
+
+  const groupedSearchTypes = menuConfig
+    .filter((item) => !item.requiresSuperAdmin || isSuperAdmin())
+    .map((item) => ({
+      label: item.label,
+      hasChildren: !!item.subItems,
+      children:
+        item.subItems?.map((sub) => ({
+          label: `${item.label} › ${sub.label}`,
+          path: sub.path,
+          icon: sub.icon,
+        })) || [],
+      icon: item.icon,
+      path: item.path || null,
+    }));
 
   const filteredResults = searchableModules
     .filter((item) => {
@@ -139,9 +165,9 @@ export default function Header({ open, setOpen, activePage, setActivePage }) {
     });
 
   useEffect(() => {
-    // Find the module matching the current activePage
-    const matchedType = searchTypes.find((type) => activePage.startsWith(type));
-    if (matchedType) setSearchType(matchedType);
+    if (activePage) {
+      setSearchType(activePage);
+    }
   }, [activePage]);
 
   useEffect(() => {
@@ -228,7 +254,7 @@ export default function Header({ open, setOpen, activePage, setActivePage }) {
                 />
               </svg>
 
-              {searchTypeOpen && (
+              {/* {searchTypeOpen && (
                 <div className="absolute top-[110%] left-0 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] mt-1">
                   {searchTypes.map((type) => {
                     const Icon = searchTypeIconMap[type];
@@ -255,6 +281,80 @@ export default function Header({ open, setOpen, activePage, setActivePage }) {
                     );
                   })}
                 </div>
+              )} */}
+
+              {searchTypeOpen && (
+                <div className="absolute top-[110%] left-0 w-64 bg-white border border-gray-200 shadow-xl rounded-md z-[9999] mt-1 max-h-[70vh] overflow-y-auto no-scrollbar">
+                  {groupedSearchTypes.map((group) => (
+                    <div key={group.label}>
+                      {/* Parent item */}
+                      <div
+                        className={`
+            flex items-center justify-between px-4 py-2.5 text-sm cursor-pointer
+            ${openParent === group.label ? "bg-green-50 text-green-700" : "hover:bg-gray-50"}
+          `}
+                        onClick={(e) => {
+                          e.stopPropagation();
+
+                          if (group.hasChildren) {
+                            setOpenParent(
+                              openParent === group.label ? null : group.label,
+                            );
+                          } else if (group.path) {
+                            navigate(group.path);
+                            setSearchType(group.label);
+                            setSearchTypeOpen(false);
+                            setSearchValue("");
+                            setActivePage(group.label);
+                          }
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          {group.icon && (
+                            <group.icon size={16} className="text-green-600" />
+                          )}
+                          <span className="font-medium">{group.label}</span>
+                        </div>
+
+                        {group.hasChildren && (
+                          <MdKeyboardArrowDown
+                            className={`transition-transform ${openParent === group.label ? "rotate-180" : ""}`}
+                          />
+                        )}
+                      </div>
+
+                      {/* Children – indented */}
+                      {group.hasChildren && openParent === group.label && (
+                        <div className="bg-gray-50/70">
+                          {group.children.map((child) => (
+                            <div
+                              key={child.label}
+                              className="pl-12 py-2 px-4 text-sm cursor-pointer hover:bg-green-50 flex items-center gap-3"
+                              onClick={() => {
+                                navigate(child.path);
+                                setSearchType(child.label);
+                                setSearchTypeOpen(false);
+                                setSearchValue("");
+                                setActivePage(child.label);
+                              }}
+                            >
+                              {child.icon && (
+                                <child.icon
+                                  size={14}
+                                  className="text-green-700 opacity-80"
+                                />
+                              )}
+
+                              <span>
+                                {child.label.replace(`${group.label} › `, "")}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 
@@ -272,7 +372,7 @@ export default function Header({ open, setOpen, activePage, setActivePage }) {
 
               {/* DROPDOWN RESULTS */}
               {searchValue && filteredResults.length > 0 && (
-                <div className="absolute top-full left-0 w-full bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-80 overflow-y-auto mt-2">
+                <div className="absolute top-full left-0 w-full bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-80 overflow-y-auto mt-2 ">
                   {filteredResults.map((item, index) => (
                     <button
                       key={index}
@@ -433,7 +533,7 @@ export default function Header({ open, setOpen, activePage, setActivePage }) {
                     navigate(item.path);
                     setActivePage(item.label);
                     setSearchValue("");
-                    setSearchOpen(false); 
+                    setSearchOpen(false);
                   }}
                   className="px-3 py-2 cursor-pointer hover:bg-green-100 text-sm flex items-center gap-2"
                 >

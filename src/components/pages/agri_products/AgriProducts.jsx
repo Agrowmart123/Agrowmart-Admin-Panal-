@@ -645,10 +645,6 @@ export default function AgriProducts() {
     }
   };
 
-  const getVisibilityColor = (visible) => {
-    return visible ? "text-emerald-700" : "text-rose-700";
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-white p-6 flex items-center justify-center">
@@ -740,9 +736,6 @@ export default function AgriProducts() {
                   Status
                 </th>
                 <th className="px-4 py-3 text-center text-[10px] font-bold text-gray-600 uppercase tracking-wider">
-                  Visible
-                </th>
-                <th className="px-4 py-3 text-center text-[10px] font-bold text-gray-600 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -751,7 +744,7 @@ export default function AgriProducts() {
               {paginated.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={7}
                     className="px-4 py-8 text-center text-gray-500 text-sm"
                   >
                     No products found
@@ -818,13 +811,7 @@ export default function AgriProducts() {
                         {product.approvalStatus}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-center">
-                      <span
-                        className={`text-xs font-medium ${getVisibilityColor(product.visibleToCustomers)}`}
-                      >
-                        {product.visibleToCustomers ? "YES" : "NO"}
-                      </span>
-                    </td>
+
                     <td className="px-4 py-3 text-center">
                       <button
                         onClick={() => navigate(`/agri-product/${product.id}`)}
@@ -919,14 +906,7 @@ export default function AgriProducts() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between mt-3">
-                  <span
-                    className={`text-xs font-medium ${getVisibilityColor(product.visibleToCustomers)}`}
-                  >
-                    {product.visibleToCustomers
-                      ? "Visible to customers"
-                      : "Hidden"}
-                  </span>
+                <div className="flex items-center justify-end mt-3">
                   <button
                     onClick={() => navigate(`/agri-product/${product.id}`)}
                     className="px-3 py-1 text-xs border border-green-600 text-green-600 rounded hover:bg-green-50 transition-colors font-medium"

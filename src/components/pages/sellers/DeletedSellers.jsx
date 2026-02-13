@@ -8,11 +8,16 @@ import {
   UserX,
   Loader2,
   MapPin,
+  Calendar,
 } from "lucide-react";
 import { getDeletedSellersList, restoreSeller } from "../../../api/sellerApi";
 import toast from "react-hot-toast";
 
-export default function DeletedSellers() {
+/**
+ * DeletedSellers Component
+ * Displays a list of soft-deleted vendors and provides restoration functionality.
+ */
+const DeletedSellers = () => {
   const navigate = useNavigate();
   const [deletedSellers, setDeletedSellers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,17 +25,26 @@ export default function DeletedSellers() {
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
 
+  // ✅ Fetching Data from Spring Boot Backend
   const fetchDeleted = async () => {
     setLoading(true);
     try {
+      // API call to fetch deleted vendors (page index starts at 0 for backend)
       const res = await getDeletedSellersList(page - 1, itemsPerPage);
+
+      console.log("Archive Response:", res);
+
       if (res.success) {
-        // Mapping directly from MySQL backend ResponseDTO
+        // Extracting data from ApiResponseDTO structure
+        // Maps to the List<Map<String, Object>> returned by your Java service
         const rawData = res.data?.data || res.data?.content || res.data || [];
-        setDeletedSellers(rawData);
+        setDeletedSellers(Array.isArray(rawData) ? rawData : []);
+      } else {
+        toast.error(res.message || "Failed to load archive data");
       }
     } catch (err) {
-      toast.error("Failed to load deleted archive!");
+      console.error("API Error:", err);
+      toast.error("Could not connect to the server!");
     } finally {
       setLoading(false);
     }
@@ -40,162 +54,175 @@ export default function DeletedSellers() {
     fetchDeleted();
   }, [page]);
 
+  // ✅ Restore Functionality
   const handleRestore = async (sellerId) => {
-    if (window.confirm("Restore this seller to active status?")) {
+    if (
+      window.confirm(
+        "Do you want to restore this vendor account to active status?",
+      )
+    ) {
       try {
         const res = await restoreSeller(sellerId);
         if (res.success) {
-          toast.success("Seller restored successfully!");
+          toast.success("Vendor restored successfully!");
+          // Redirecting to active sellers list after restoration
           navigate("/sellers");
+        } else {
+          toast.error(res.message || "Failed to restore account");
         }
       } catch (err) {
-        toast.error("Restoration failed!");
+        toast.error("Restoration failed! Check backend logs.");
       }
     }
   };
 
-  const filtered = deletedSellers.filter((s) => {
-    const q = search.toLowerCase();
+  // ✅ Search Filtering (Local)
+  const filteredSellers = deletedSellers.filter((s) => {
+    const query = search.toLowerCase();
     return (
-      q === "" ||
-      (s.storeName || s.businessName || "").toLowerCase().includes(q) ||
-      (s.sellerName || s.name || "").toLowerCase().includes(q) ||
-      (s.email || "").toLowerCase().includes(q)
+      query === "" ||
+      (s.storeName || s.businessName || "").toLowerCase().includes(query) ||
+      (s.sellerName || s.name || "").toLowerCase().includes(query) ||
+      (s.email || "").toLowerCase().includes(query)
     );
   });
 
-  if (loading)
+  if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <Loader2 className="animate-spin text-lime-600 w-10 h-10 mb-2" />
-        <p className="text-gray-500 font-medium italic">
-          Loading Deleted Archive...
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white">
+        <Loader2 className="animate-spin text-lime-600 w-12 h-12 mb-4" />
+        <p className="text-gray-500 font-bold tracking-widest uppercase text-xs">
+          Accessing Deleted Archive...
         </p>
       </div>
     );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6 text-left">
-      <div className="max-w-full mx-auto">
-        {/* Navigation */}
+    <div className="min-h-screen bg-[#F9FAFB] p-4 md:p-8 text-left font-sans">
+      <div className="max-w-7xl mx-auto">
+        {/* Navigation Bar */}
         <button
           onClick={() => navigate("/sellers")}
-          className="flex items-center gap-2 text-gray-500 mb-6 hover:text-gray-800 font-medium transition-colors"
+          className="flex items-center gap-2 text-gray-500 hover:text-black mb-8 font-bold transition-all"
         >
-          <ArrowLeft size={20} /> Back to Sellers
+          <ArrowLeft size={18} /> BACK TO MERCHANT LIST
         </button>
 
         {/* Header Section */}
-        <div className="mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
-          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Trash2 className="text-red-500" size={24} />
-            Deleted Sellers List ({filtered.length})
-          </h1>
-          <div className="relative w-full md:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+          <div>
+            <h1 className="text-2xl font-black text-gray-900 flex items-center gap-3">
+              <Trash2 className="text-red-500" size={28} />
+              DELETED SELLERS ARCHIVE
+            </h1>
+            <p className="text-sm text-gray-400 font-medium mt-1">
+              Showing {filteredSellers.length} inactive vendor accounts
+            </p>
+          </div>
+
+          <div className="relative w-full md:w-96">
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              size={18}
+            />
             <input
               type="text"
-              placeholder="Search by store, name or email..."
+              placeholder="Search by store name, email or phone..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-green-500 shadow-sm bg-white"
+              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-lime-500 outline-none shadow-sm transition-all"
             />
           </div>
         </div>
 
-        {/* Desktop View Table */}
-        <div className="hidden lg:block bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-4 font-bold text-gray-500 uppercase text-[10px]">
-                  Store Details
+        {/* Desktop Table View */}
+        <div className="hidden lg:block bg-white rounded-[32px] border border-gray-100 shadow-xl overflow-hidden">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-gray-50/50 border-b border-gray-100">
+                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                  Store / Business
                 </th>
-                <th className="px-6 py-4 font-bold text-gray-500 uppercase text-[10px]">
-                  Vendor Type
+                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                  Category
                 </th>
-                <th className="px-6 py-4 font-bold text-gray-500 uppercase text-[10px]">
-                  Subscription
+                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                  Contact Details
                 </th>
-                <th className="px-6 py-4 font-bold text-gray-500 uppercase text-[10px]">
-                  Contact Info
+                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                  Deletion Date
                 </th>
-                <th className="px-6 py-4 text-center font-bold text-gray-500 uppercase text-[10px]">
-                  Deleted At
-                </th>
-                <th className="px-6 py-4 text-center font-bold text-gray-500 uppercase text-[10px]">
-                  Actions
+                <th className="px-8 py-5 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                  Action
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filtered.length === 0 ? (
+            <tbody className="divide-y divide-gray-50">
+              {filteredSellers.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="px-6 py-20 text-center text-gray-400"
-                  >
-                    <UserX size={48} className="mx-auto mb-2 opacity-20" />
-                    <p className="italic font-medium">
-                      No deleted sellers found in archive.
+                  <td colSpan={5} className="py-32 text-center">
+                    <UserX size={60} className="mx-auto mb-4 text-gray-200" />
+                    <p className="text-gray-400 font-bold italic">
+                      No deleted vendors found in the archive.
                     </p>
                   </td>
                 </tr>
               ) : (
-                filtered.map((s) => (
-                  <tr key={s.id} className="hover:bg-gray-50 transition-colors">
-                    {/* Store Details */}
-                    <td className="px-6 py-4">
+                filteredSellers.map((seller) => (
+                  <tr
+                    key={seller.id}
+                    className="hover:bg-gray-50/50 transition-all group"
+                  >
+                    <td className="px-8 py-6">
                       <div className="flex items-center gap-4">
                         <img
-                          src={s.photoUrl || "https://via.placeholder.com/40"}
-                          className="w-10 h-10 rounded-full object-cover grayscale border"
-                          alt=""
+                          src={
+                            seller.photoUrl || "https://via.placeholder.com/150"
+                          }
+                          className="w-12 h-12 rounded-2xl object-cover grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all border border-gray-100"
+                          alt="Store"
                         />
                         <div>
-                          <div className="text-sm font-bold text-gray-900 leading-tight">
-                            {s.storeName || s.businessName || s.sellerName}
-                          </div>
-                          <div className="text-[11px] text-gray-400 flex items-center gap-1 mt-0.5">
-                            <MapPin size={10} /> {s.address || "No Address"}
-                          </div>
+                          <p className="font-black text-gray-800 text-sm">
+                            {seller.storeName || seller.businessName || "N/A"}
+                          </p>
+                          <p className="text-[11px] text-gray-400 flex items-center gap-1 mt-0.5">
+                            <MapPin size={10} />{" "}
+                            {seller.address || "Location Hidden"}
+                          </p>
                         </div>
                       </div>
                     </td>
-                    {/* Vendor Type */}
-                    <td className="px-6 py-4">
-                      <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-bold uppercase">
-                        {s.vendorType || "General"}
+                    <td className="px-8 py-6">
+                      <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-tighter">
+                        {seller.vendorType || "General Seller"}
                       </span>
                     </td>
-                    {/* Subscription */}
-                    <td className="px-6 py-4 font-bold text-gray-600 text-xs">
-                      {s.subscriptionPlan || "Basic"}
-                    </td>
-                    {/* Contact Info */}
-                    <td className="px-6 py-4">
-                      <p className="text-sm text-gray-700 font-medium">
-                        {s.phone || "N/A"}
+                    <td className="px-8 py-6">
+                      <p className="text-xs font-bold text-gray-700">
+                        {seller.phone || "---"}
                       </p>
-                      <p className="text-xs text-gray-400">
-                        {s.email || "N/A"}
+                      <p className="text-[11px] text-gray-400 mt-0.5">
+                        {seller.email}
                       </p>
                     </td>
-                    {/* Deleted Date */}
-                    <td className="px-6 py-4 text-center">
-                      <span className="text-xs text-red-400 font-bold bg-red-50 px-2 py-1 rounded-md uppercase">
-                        {s.deletedAt
-                          ? new Date(s.deletedAt).toLocaleDateString("en-GB")
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-2 text-red-400 font-bold text-xs uppercase">
+                        <Calendar size={12} />
+                        {seller.deletedAt
+                          ? new Date(seller.deletedAt).toLocaleDateString(
+                              "en-GB",
+                            )
                           : "Recently"}
-                      </span>
+                      </div>
                     </td>
-                    {/* Restore Action */}
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-8 py-6 text-center">
                       <button
-                        onClick={() => handleRestore(s.id)}
-                        className="px-4 py-2 border border-lime-600 text-lime-600 rounded-lg text-[10px] font-bold hover:bg-lime-600 hover:text-white transition-all flex items-center gap-1 mx-auto"
+                        onClick={() => handleRestore(seller.id)}
+                        className="px-5 py-2.5 border-2 border-lime-500 text-lime-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-lime-500 hover:text-white transition-all shadow-lg shadow-lime-100 flex items-center gap-2 mx-auto"
                       >
-                        <RotateCcw size={12} /> RESTORE
+                        <RotateCcw size={14} /> Restore
                       </button>
                     </td>
                   </tr>
@@ -205,47 +232,54 @@ export default function DeletedSellers() {
           </table>
         </div>
 
-        {/* Mobile View - Cards Layout */}
-        <div className="lg:hidden space-y-4">
-          {filtered.map((s) => (
+        {/* Mobile Grid View */}
+        <div className="lg:hidden space-y-6">
+          {filteredSellers.map((seller) => (
             <div
-              key={s.id}
-              className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm text-left"
+              key={seller.id}
+              className="bg-white p-6 rounded-[24px] border border-gray-100 shadow-sm relative overflow-hidden"
             >
-              <div className="flex items-center gap-4 mb-4 pb-3 border-b">
+              <div className="absolute top-0 right-0 px-4 py-1 bg-red-50 text-red-500 text-[9px] font-black uppercase tracking-widest">
+                Deleted Account
+              </div>
+              <div className="flex items-center gap-4 mb-6 pt-4">
                 <img
-                  src={s.photoUrl || "https://via.placeholder.com/40"}
-                  className="w-14 h-14 rounded-xl object-cover grayscale border"
-                  alt=""
+                  src={seller.photoUrl || "https://via.placeholder.com/150"}
+                  className="w-16 h-16 rounded-2xl object-cover grayscale"
+                  alt="vendor"
                 />
-                <div className="flex-1">
-                  <h3 className="text-sm font-bold text-gray-900">
-                    {s.storeName || s.businessName}
+                <div>
+                  <h3 className="font-black text-gray-900 uppercase text-sm tracking-tight">
+                    {seller.storeName || seller.businessName}
                   </h3>
-                  <div className="flex gap-2 mt-1">
-                    <span className="text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-bold uppercase">
-                      {s.vendorType || "General"}
-                    </span>
-                    <span className="text-[9px] bg-gray-50 text-gray-600 px-1.5 py-0.5 rounded font-bold uppercase">
-                      {s.subscriptionPlan || "Basic"}
-                    </span>
-                  </div>
+                  <p className="text-[10px] text-indigo-500 font-black uppercase">
+                    {seller.vendorType}
+                  </p>
                 </div>
               </div>
-              <div className="space-y-1 mb-4">
-                <p className="text-xs text-gray-500 font-medium italic">
-                  Deleted At:{" "}
-                  {s.deletedAt
-                    ? new Date(s.deletedAt).toLocaleDateString("en-GB")
-                    : "Recently"}
-                </p>
-                <p className="text-xs text-gray-700">Contact: {s.phone}</p>
+              <div className="space-y-2 mb-8 text-left">
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-400 font-bold uppercase tracking-widest">
+                    Contact
+                  </span>
+                  <span className="text-gray-700 font-black">
+                    {seller.phone || "N/A"}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-400 font-bold uppercase tracking-widest">
+                    Email
+                  </span>
+                  <span className="text-gray-700 font-black truncate max-w-[150px]">
+                    {seller.email}
+                  </span>
+                </div>
               </div>
               <button
-                onClick={() => handleRestore(s.id)}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-lime-50 text-lime-700 rounded-xl text-xs font-bold hover:bg-lime-600 hover:text-white transition-all"
+                onClick={() => handleRestore(seller.id)}
+                className="w-full flex items-center justify-center gap-3 py-4 bg-lime-600 text-white rounded-2xl text-xs font-black uppercase tracking-[2px] shadow-xl shadow-lime-100 active:scale-95 transition-all"
               >
-                <RotateCcw size={14} /> Restore Account
+                <RotateCcw size={16} /> RESTORE VENDOR
               </button>
             </div>
           ))}
@@ -253,4 +287,6 @@ export default function DeletedSellers() {
       </div>
     </div>
   );
-}
+};
+
+export default DeletedSellers;

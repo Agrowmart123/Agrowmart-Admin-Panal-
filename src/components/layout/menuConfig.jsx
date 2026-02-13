@@ -4,6 +4,14 @@ import {
   FaChartLine,
   FaUserShield,
   FaStar,
+  FaTruck,
+  FaUserFriends,
+  FaBox,
+  FaGlobe,
+  FaImage,
+  FaBoxOpen,
+  FaNewspaper,
+  FaImages,
 } from "react-icons/fa";
 import { FaOpencart, FaLeaf } from "react-icons/fa6";
 import { BiCategory } from "react-icons/bi";
@@ -15,6 +23,12 @@ import {
   MdPayment,
   MdOutlineAppShortcut,
   MdHistory,
+  MdStore,
+  MdPending,
+  MdLocalShipping,
+  MdDone,
+  MdCancel,
+  MdCategory,
 } from "react-icons/md";
 import { AiOutlineProduct } from "react-icons/ai";
 import { WiDaySunny } from "react-icons/wi";
@@ -29,41 +43,59 @@ export const menuConfig = [
     label: "Users",
     icon: FaUsers,
     subItems: [
-      { label: "Customers", path: "/customers" },
-      { label: "Sellers", path: "/sellers" },
-      { label: "Delivery Partners", path: "/delivery" },
+      { label: "Customers", path: "/customers", icon: FaUserFriends },
+      { label: "Sellers", path: "/sellers", icon: MdStore },
+      { label: "Delivery Partners", path: "/delivery", icon: FaTruck },
     ],
   },
+
   {
     label: "Products",
     icon: FaProductHunt,
     subItems: [
-      { label: "All Products", path: "/products" },
-      { label: "Deleted Products", path: "/deletedproducts" },
+      { label: "All Products", path: "/products", icon: FaBoxOpen },
+      { label: "Deleted Products", path: "/deletedproducts", icon: MdCategory },
     ],
   },
 
   {
     label: "Agri Products",
-    path: "/agri-products",           
-    icon: GiWheat,           
+    path: "/agri-products",
+    icon: GiWheat,
   },
 
   {
     label: "Orders",
     icon: FaOpencart,
     subItems: [
-      { label: "In Progress", path: "/orders?status=in-progress" },
-      { label: "Shipped", path: "/orders?status=shipped" },
-      { label: "Completed", path: "/orders?status=completed" },
-      { label: "Cancelled", path: "/orders?status=cancelled" },
+      {
+        label: "In Progress",
+        path: "/orders?status=in-progress",
+        icon: MdPending,
+      },
+      {
+        label: "Shipped",
+        path: "/orders?status=shipped",
+        icon: MdLocalShipping,
+      },
+      { label: "Completed", path: "/orders?status=completed", icon: MdDone },
+      { label: "Cancelled", path: "/orders?status=cancelled", icon: MdCancel },
     ],
   },
   { label: "Reviews", path: "/review", icon: FaStar },
   { label: "Categories", path: "/categories", icon: BiCategory },
   { label: "Market Rates", path: "/market-rates", icon: FaChartLine },
   { label: "Weather Settings", path: "/weather-settings", icon: WiDaySunny },
-  { label: "Websites", path: "/websites", icon: CgWebsite },
+  {
+    label: "Websites",
+    icon: CgWebsite,
+    subItems: [
+      { label: "Banners", path: "/websites-banners", icon: FaImage },
+      { label: "Blogs / News", path: "/websites-blogs", icon: FaNewspaper },
+      { label: "Media Gallery", path: "/websites-media", icon: FaImages },
+      { label: "Pages", path: "/websites-pages", icon: FaGlobe },
+    ],
+  },
   { label: "Offers", path: "/offers", icon: IoPricetagOutline },
   {
     label: "Admins",

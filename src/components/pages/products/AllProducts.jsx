@@ -617,6 +617,12 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Search, ChevronDown } from "lucide-react";
 import { getAllProductsForAdmin } from "../../../api/adminProduct";
 
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
+
 export default function AllProducts() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -654,6 +660,8 @@ export default function AllProducts() {
   const [vendorFilter, setVendorFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const firstLoadRef = useRef(true);
+  const [exportOpen, setExportOpen] = useState(false);
+
 
   const itemsPerPage = 8;
 
@@ -916,12 +924,113 @@ export default function AllProducts() {
     );
   }
 
+  // Export CSV
+  const exportCSV = () => {
+    const data = filtered.map((p) => ({
+      "Product Name": p.productName,
+      Code: p.code,
+      "Min Price": p.minPrice,
+      "Max Price": p.maxPrice,
+      Vendor: p.merchantName,
+      "Vendor Type": p.vendorType,
+      Category: p.categoryName,
+      Stock: p.stockStatus,
+      Status: p.status,
+      "Date Added": p.createdAt
+        ? new Date(p.createdAt).toLocaleDateString("en-GB")
+        : "",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
+    XLSX.writeFile(workbook, "products.csv");
+  };
+
+  // Export Excel
+  const exportExcel = () => {
+    const data = filtered.map((p) => ({
+      "Product Name": p.productName,
+      Code: p.code,
+      "Min Price": p.minPrice,
+      "Max Price": p.maxPrice,
+      Vendor: p.merchantName,
+      "Vendor Type": p.vendorType,
+      Category: p.categoryName,
+      Stock: p.stockStatus,
+      Status: p.status,
+      "Date Added": p.createdAt
+        ? new Date(p.createdAt).toLocaleDateString("en-GB")
+        : "",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
+    XLSX.writeFile(workbook, "products.xlsx");
+  };
+
+  // Export PDF
+  const exportPDF = () => {
+    if (!filtered || filtered.length === 0) {
+      alert("No products to export!");
+      return;
+    }
+
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: "pt",
+      format: "a4",
+    });
+
+    const tableColumn = [
+      "Product Name",
+      "Code",
+      "Min Price",
+      "Max Price",
+      "Vendor",
+      "Vendor Type",
+      "Category",
+      "Stock",
+      "Status",
+      "Date Added",
+    ];
+
+    const tableRows = filtered.map((p) => [
+      p.productName ?? "",
+      p.code ?? "",
+      p.minPrice != null ? `Rs ${p.minPrice}` : "",
+      p.maxPrice != null ? `Rs ${p.maxPrice}` : "",
+      p.merchantName ?? "",
+      p.vendorType ?? "",
+      p.categoryName ?? "",
+      p.stockStatus ?? "",
+      p.status ?? "",
+      p.createdAt ? new Date(p.createdAt).toLocaleDateString("en-GB") : "",
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 40,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [22, 160, 133] },
+      theme: "striped",
+    });
+
+    doc.save("products.pdf");
+  };
+
   return (
     <div className="min-h-screen bg-white p-3 md:p-6">
       <div className="max-w-full mx-auto">
+
+
         {/* ================= HEADER SECTION ================= */}
         <div className="mb-6">
+
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+
             {/* Title */}
             <h1 className="text-lg md:text-xl font-semibold text-gray-900 whitespace-nowrap">
               All Products ({filtered.length})
@@ -973,7 +1082,56 @@ export default function AllProducts() {
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
               </div>
+
+              {/* Export Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setExportOpen(!exportOpen)}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                >
+                  Export
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+
+                {exportOpen && (
+                  <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded shadow-lg z-20">
+                    <button
+                      onClick={() => {
+                        exportCSV();
+                        setExportOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+                    >
+                      Export CSV
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        exportExcel();
+                        setExportOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+                    >
+                      Export Excel
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        exportPDF();
+                        setExportOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+                    >
+                      Export PDF
+                    </button>
+                  </div>
+                )}
+              </div>
+
+
             </div>
+
+
           </div>
         </div>
 
@@ -1005,11 +1163,10 @@ export default function AllProducts() {
                           setVendorFilter(vendor === "ALL" ? "" : vendor)
                         }
                         className={`w-full text-left px-3 py-2 text-xs 
-    ${
-      vendorFilter === vendor || (vendor === "ALL" && !vendorFilter)
-        ? "bg-gray-100 font-semibold"
-        : "hover:bg-gray-50"
-    }
+    ${vendorFilter === vendor || (vendor === "ALL" && !vendorFilter)
+                            ? "bg-gray-100 font-semibold"
+                            : "hover:bg-gray-50"
+                          }
   `}
                       >
                         {vendor}
@@ -1064,9 +1221,8 @@ export default function AllProducts() {
                 paginated.map((p, index) => (
                   <tr
                     key={p.id}
-                    className={`border-b border-gray-200 hover:bg-gray-50 ${
-                      index === paginated.length - 1 ? "border-b-0" : ""
-                    }`}
+                    className={`border-b border-gray-200 hover:bg-gray-50 ${index === paginated.length - 1 ? "border-b-0" : ""
+                      }`}
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
@@ -1238,11 +1394,10 @@ export default function AllProducts() {
           <button
             onClick={() => page > 1 && setPage(page - 1)}
             disabled={page === 1}
-            className={`px-3 py-1 rounded ${
-              page === 1
+            className={`px-3 py-1 rounded ${page === 1
                 ? "text-gray-300 cursor-not-allowed"
                 : "text-gray-700 hover:text-green-600"
-            }`}
+              }`}
           >
             PREV
           </button>
@@ -1264,11 +1419,10 @@ export default function AllProducts() {
               <button
                 key={num}
                 onClick={() => setPage(num)}
-                className={`px-2.5 py-1 rounded border text-sm ${
-                  page === num
+                className={`px-2.5 py-1 rounded border text-sm ${page === num
                     ? "bg-green-600 text-white border-green-600"
                     : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                }`}
+                  }`}
               >
                 {num}
               </button>
@@ -1278,11 +1432,10 @@ export default function AllProducts() {
           <button
             onClick={() => page < totalPages && setPage(page + 1)}
             disabled={page === totalPages}
-            className={`px-3 py-1 rounded ${
-              page === totalPages
+            className={`px-3 py-1 rounded ${page === totalPages
                 ? "text-gray-300 cursor-not-allowed"
                 : "text-gray-700 hover:text-green-600"
-            }`}
+              }`}
           >
             NEXT
           </button>
