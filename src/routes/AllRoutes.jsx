@@ -76,7 +76,7 @@ import Notifications from "../components/pages/notifications/Notifications";
 
 import Profile from "../components/pages/profile/Profile";
 import Settings from "../components/pages/settings/Settings";
-import ActivityLog from "../components/pages/activityLog/ActivityLog";
+import ActivityLog from "../components/pages/activityLogs/ActivityLog";
 import Payments from "../components/pages/payments/Payments";
 import Orders from "../components/pages/orders/Orders";
 import OrderDetail from "../components/pages/orders/OrderDetail";
