@@ -364,7 +364,6 @@
 
 // export default Sellers;
 
-
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -670,6 +669,91 @@ const Sellers = () => {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile & Tablet View */}
+      <div className="md:hidden space-y-4">
+        {merchantsData.length === 0 ? (
+          <div className="text-center py-16 text-gray-400 italic bg-white rounded-lg shadow">
+            No sellers found.
+          </div>
+        ) : (
+          merchantsData.map((m) => (
+            <div
+              key={m.id}
+              className="bg-white rounded-lg shadow border border-gray-100 p-4"
+            >
+              {/* Header */}
+              <div className="flex items-center gap-3 mb-3">
+                <img
+                  src={m.photoUrl || "https://via.placeholder.com/40"}
+                  className="w-10 h-10 rounded-full border object-cover"
+                  alt=""
+                />
+                <div className="flex-1 overflow-hidden">
+                  <p className="font-semibold text-gray-700 truncate">
+                    {m.storeName || m.businessName || m.name}
+                  </p>
+                  <p className="text-xs text-gray-400 truncate">
+                    {m.address || "No Location"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Info */}
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Phone</span>
+                  <span className="font-medium text-gray-700">{m.phone}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Email</span>
+                  <span className="font-medium text-gray-700 truncate max-w-[180px]">
+                    {m.email}
+                  </span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Vendor</span>
+                  <span className="uppercase text-xs font-bold">
+                    {m.vendorType || "N/A"}
+                  </span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Plan</span>
+                  <span className="px-2 py-1 rounded text-[10px] font-black bg-blue-50 text-blue-600 border border-blue-100 uppercase">
+                    {m.subscriptionPlan || "Basic"}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">Status</span>
+                  <span
+                    className={`px-2 py-1 rounded text-[10px] font-black uppercase border ${
+                      (m.status || m.accountStatus || "PENDING") === "APPROVED"
+                        ? "text-green-600 bg-green-50 border-green-100"
+                        : (m.status || m.accountStatus) === "REJECTED"
+                          ? "text-red-600 bg-red-50 border-red-100"
+                          : "text-yellow-600 bg-yellow-50 border-yellow-100"
+                    }`}
+                  >
+                    {m.status || m.accountStatus || "PENDING"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Action */}
+              <button
+                onClick={() => navigate(`/seller/${m.id}`)}
+                className="mt-4 w-full py-2 border border-green-600 text-green-600 rounded-md text-xs font-bold hover:bg-green-600 hover:text-white transition-all"
+              >
+                View Profile
+              </button>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Pagination */}

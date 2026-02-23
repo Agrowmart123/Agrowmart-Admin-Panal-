@@ -529,9 +529,12 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search } from "lucide-react";
+import { Search, ChevronDown } from "lucide-react";
 import { getAllAgriProducts } from "../../../api/agriProduct";
 import toast from "react-hot-toast";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function AgriProducts() {
   const navigate = useNavigate();
@@ -542,6 +545,8 @@ export default function AgriProducts() {
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [selectedStatus, setSelectedStatus] = useState("All Status");
   const [page, setPage] = useState(1);
+  const [exportOpen, setExportOpen] = useState(false);
+
   const itemsPerPage = 8;
 
   const categoryOptions = [
@@ -645,6 +650,85 @@ export default function AgriProducts() {
     }
   };
 
+  const exportCSV = () => {
+    const data = filteredProducts.map((p) => ({
+      "Product Name": p.AgriproductName,
+      Category: p.category,
+      Price: p.price,
+      Unit: p.unit,
+      Stock: p.quantity,
+      Vendor: p.vendorName,
+      Status: p.approvalStatus,
+      "Date Added": p.createdAt,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Agri Products");
+    XLSX.writeFile(workbook, "agri_products.csv");
+  };
+  const exportExcel = () => {
+    const data = filteredProducts.map((p) => ({
+      "Product Name": p.AgriproductName,
+      Category: p.category,
+      Price: p.price,
+      Unit: p.unit,
+      Stock: p.quantity,
+      Vendor: p.vendorName,
+      Status: p.approvalStatus,
+      "Date Added": p.createdAt,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Agri Products");
+    XLSX.writeFile(workbook, "agri_products.xlsx");
+  };
+  const exportPDF = () => {
+    if (!filteredProducts.length) {
+      alert("No products to export!");
+      return;
+    }
+
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: "pt",
+      format: "a4",
+    });
+
+    const tableColumn = [
+      "Product Name",
+      "Category",
+      "Price",
+      "Unit",
+      "Stock",
+      "Vendor",
+      "Status",
+      "Date Added",
+    ];
+
+    const tableRows = filteredProducts.map((p) => [
+      p.AgriproductName,
+      p.category,
+      `₹${p.price}`,
+      p.unit,
+      p.quantity,
+      p.vendorName,
+      p.approvalStatus,
+      p.createdAt,
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 40,
+      styles: { fontSize: 8 },
+      theme: "striped",
+    });
+
+    doc.save("agri_products.pdf");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white p-6 flex items-center justify-center">
@@ -707,6 +791,51 @@ export default function AgriProducts() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Export Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setExportOpen(!exportOpen)}
+                  className="flex items-center gap-2 px-4 py-1.5 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                >
+                  Export
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+
+                {exportOpen && (
+                  <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded shadow-lg z-20">
+                    <button
+                      onClick={() => {
+                        exportCSV();
+                        setExportOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+                    >
+                      Export CSV
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        exportExcel();
+                        setExportOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+                    >
+                      Export Excel
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        exportPDF();
+                        setExportOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+                    >
+                      Export PDF
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

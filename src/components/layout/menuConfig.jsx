@@ -12,6 +12,7 @@ import {
   FaBoxOpen,
   FaNewspaper,
   FaImages,
+  FaFilePdf,
 } from "react-icons/fa";
 import { FaOpencart, FaLeaf } from "react-icons/fa6";
 import { BiCategory } from "react-icons/bi";
@@ -97,6 +98,11 @@ export const menuConfig = [
     ],
   },
   { label: "Offers", path: "/offers", icon: IoPricetagOutline },
+   {
+    label: "Catalogues",
+    path: "/catalogues",
+    icon: FaFilePdf,
+  },
   {
     label: "Admins",
     path: "/admins",

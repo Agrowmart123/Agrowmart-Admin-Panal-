@@ -14,32 +14,69 @@ import ResetPasswordPage from "../components/auth/ResetPassword";
 import ProtectedRoute from "./ProtectedRoutes";
 
 // --- Page Components ---
+
+// Dashboard
 import Dashboard from "../components/pages/dashboard/Dashboard";
+
+// Customers
 import Customers from "../components/pages/customers/Customers";
 import CustomerProfile from "../components/pages/customers/CustomerProfile";
+
+// Sellers
 import Sellers from "../components/pages/sellers/Sellers";
 import SellerProfile from "../components/pages/sellers/SellerProfile";
+
+// Delivery Partners
 import DeliveryPartners from "../components/pages/delivery/DeliveryPartners";
 import DeliveryProfile from "../components/pages/delivery/DeliveryProfile";
+
+// Products
 import AllProducts from "../components/pages/products/AllProducts";
 import ProductDetail from "../components/pages/products/ProductDetail";
+
+// Agri Products
 import AgriProducts from "../components/pages/agri_products/AgriProducts";
 import AgriProductDetail from "../components/pages/agri_products/AgriProductDetail";
+
+// Categories
 import Categories from "../components/pages/categories/Categories";
+
+// Catalogues
+import Catalogues from "../components/pages/catalogues/Catalogues";
+import UploadCatalogue from "../components/pages/catalogues/UploadCatalogue";
+import CatalogueDetail from "../components/pages/catalogues/CatalogueDetail";
+import ReviewProducts from "../components/pages/catalogues/ReviewProduct";
+import ProductPreview from "../components/pages/catalogues/ProductPreview";
+
+// Markets Rates
 import MarketRates from "../components/pages/market/MarketRates";
+
+// Weather Settings
 import WeatherSettings from "../components/pages/weather/WeatherSettings";
+
+// Websites Content
 import BannersManagement from "../components/pages/website-content/Banners";
 import BlogsManagement from "../components/pages/website-content/Blogs";
 import MediaManagement from "../components/pages/website-content/MediaGallery";
 import PagesManagement from "../components/pages/website-content/Pages";
+
+// Admins
 import Admins from "../components/pages/admins/Admins";
+
+// Tickets & Support
 import TicketsSupport from "../components/pages/support/TicketsSupport";
 import TicketDetail from "../components/pages/support/TicketDetail";
+
+// Offers
 import Offers from "../components/pages/offers/Offers";
+
+// Notifications
 import Notifications from "../components/pages/notifications/Notifications";
+
+
 import Profile from "../components/pages/profile/Profile";
 import Settings from "../components/pages/settings/Settings";
-import ActivityLog from "../components/pages/ActivityLog/ActivityLog";
+import ActivityLog from "../components/pages/activityLog/ActivityLog";
 import Payments from "../components/pages/payments/Payments";
 import Orders from "../components/pages/orders/Orders";
 import OrderDetail from "../components/pages/orders/OrderDetail";
@@ -104,6 +141,12 @@ const AllRoutes = () => {
 
           <Route path="/agri-products" element={<AgriProducts />} />
           <Route path="/agri-product/:id" element={<AgriProductDetail />} />
+
+          <Route path="/catalogues" element={<Catalogues />} />
+          <Route path="/upload" element={<UploadCatalogue />} />
+          <Route path="/catalogues/:id" element={<CatalogueDetail />} />
+          <Route path="/catalogues/:id/review" element={<ReviewProducts />} />
+          <Route path="/products/:id" element={<ProductPreview />} />
 
           <Route path="/orders" element={<Orders />} />
           <Route path="/orders/:orderId" element={<OrderDetail />} />
